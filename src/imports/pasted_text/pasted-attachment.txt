@@ -1,0 +1,1192 @@
+Design a complete, high-fidelity, production-style responsive web application called “Sahaya”, an AI-powered government welfare and financial-assistance platform for marginalized beneficiaries, entrepreneurs, students, trainees, channel partners and officials.
+
+IMPORTANT:
+This is NOT just a chatbot website.
+Sahaya is a complete government scheme discovery, eligibility, financial assistance and application guidance platform.
+
+The existing visual reference uses:
+- Dark navy government-tech aesthetic
+- White content sections
+- Blue primary actions
+- Gold/yellow accent lines
+- Rounded cards
+- Clean modern typography
+- Professional trustworthy government-service appearance
+- Accessible UI suitable for users with low digital literacy
+
+Preserve this visual language while making the entire product more polished, consistent, accessible and production-ready.
+
+BRAND:
+Name: Sahaya
+Tagline: “Right Scheme. Right Guidance. Right Opportunity.”
+Use a simple circular assistance/logo icon next to the Sahaya name.
+
+==================================================
+1. GLOBAL WEBSITE STRUCTURE
+==================================================
+
+Create the following complete pages/screens:
+
+1. Home / Landing Page
+2. Schemes Catalog
+3. Scheme Details
+4. AI Matcher / AI Assistant
+5. Eligibility Results
+6. Scheme Matching Results
+7. Financial Calculator / EMI
+8. Required Documents
+9. Nearby Channel Partners
+10. Application Guidance
+11. User Profile / Dashboard
+12. Conversation History
+13. Help & FAQs
+14. Login / Sign Up
+15. Voice Call Interface
+16. Mobile responsive versions of all important screens
+
+All pages must be connected through realistic navigation and interactive prototype flows.
+
+==================================================
+2. GLOBAL AI ASSISTANT
+==================================================
+
+This is one of the MOST IMPORTANT requirements.
+
+The AI Assistant must be available globally throughout the entire website.
+
+Add two floating controls at the bottom-right of EVERY major page:
+
+A. AI ASSISTANT BUTTON
+- Circular floating button
+- AI/assistant icon
+- Label on hover: “Ask Sahaya AI”
+- Opens the complete AI Assistant interface
+- Should remain visible while navigating between pages
+
+B. CALL BUTTON
+- Separate circular phone/voice-call button positioned beside the AI Assistant
+- Label: “Talk to Sahaya AI”
+- Clicking it starts the live AI voice assistant experience
+
+Do NOT make these buttons appear only on the chatbot page.
+They must be persistent throughout the website.
+
+On mobile:
+- Keep the controls compact
+- Stack or group them without covering important content
+
+==================================================
+3. HOME PAGE
+==================================================
+
+Create a professional landing page inspired by the existing prototype.
+
+Top navigation:
+
+Sahaya logo
+Home
+Schemes Catalog
+Help & FAQs
+AI Matcher
+
+Right side:
+Language selector
+Login / Sign Up
+
+Hero section:
+
+Headline:
+“Empowering Marginalized Entrepreneurs Through Intelligent Scheme Matching”
+
+Supporting text:
+“Find customized credit resources, subsidies, stipends, training programs and other government assistance through one intelligent platform.”
+
+Primary CTA:
+“Find Your Scheme Now”
+
+Secondary CTA:
+“Explore Schemes Catalog”
+
+Also include a highly visible AI interaction CTA:
+“Ask Sahaya AI”
+
+Below hero create statistics cards:
+
+22+ Active Schemes
+100% Deterministic Eligibility Checks
+15,000+ Entrepreneurs Assisted
+8+ Channel Partner Branches
+
+Do NOT present these numbers as government-certified facts; visually treat them as platform/demo statistics.
+
+Create “How Sahaya Works” with 5 steps:
+
+1. Tell us your requirement
+2. AI understands your profile and need
+3. Check eligibility
+4. Match the best scheme
+5. Get partner + document + application guidance
+
+Add sections for:
+
+Popular Schemes
+Why Sahaya
+How AI Matching Works
+Multilingual & Voice Assistance
+Financial Assistance Calculator
+Nearby Channel Partner
+Application Guidance
+Testimonials / trust section
+FAQ
+Footer
+
+==================================================
+4. SCHEMES CATALOG
+==================================================
+
+Create a complete government welfare scheme catalogue.
+
+Header:
+
+“Government Welfare Schemes”
+
+Supporting text:
+“Explore government assistance programs based on your category, purpose and needs.”
+
+Category tabs:
+
+All Schemes
+Credit / Loans
+Scholarships
+Subsidies
+Training
+Business
+Education
+
+Add search box:
+“Search schemes…”
+
+Add filter controls:
+
+Category
+Purpose
+Age
+Income
+State
+Gender
+Assistance Type
+
+Create polished scheme cards.
+
+Each scheme card should show:
+
+Scheme name
+Ministry / organization
+Scheme type
+Purpose
+Age range
+Family income
+Loan / grant range
+Interest rate if applicable
+Tenure if applicable
+Eligible categories
+Short description
+
+Buttons:
+
+“View Details”
+“Check Eligibility”
+“Ask AI”
+
+Use realistic government-style sample scheme data, but clearly mark demo/mock data where necessary.
+
+==================================================
+5. SCHEME DETAILS PAGE
+==================================================
+
+Create a detailed scheme page.
+
+Sections:
+
+Scheme overview
+About the scheme
+Who can apply
+Eligibility criteria
+Benefits
+Financial assistance
+Interest / tenure
+Documents required
+Application process
+Channel partners
+Frequently asked questions
+
+Right-side sticky card:
+
+“Check My Eligibility”
+
+“Ask Sahaya AI”
+
+“Find Nearby Partner”
+
+“Calculate EMI”
+
+Include an AI explanation section:
+
+“Why might this scheme be suitable for you?”
+
+Show simple explainable reasons instead of technical AI terminology.
+
+Example:
+
+✓ Your age matches the required range
+✓ Your income is within the eligible limit
+✓ Your business purpose matches the scheme
+✓ The scheme is available in your location
+
+==================================================
+6. AI MATCHER
+==================================================
+
+Create a full-screen AI assistant experience inspired by the existing prototype.
+
+Layout:
+
+LEFT SIDEBAR
+- Sahaya AI Matcher
+- New Chat
+- Popular Schemes
+- Calculate EMI
+- Required Documents
+- Find Nearby Partner
+- Major Schemes
+- Recent Conversations
+- User profile at bottom
+
+MAIN CHAT AREA
+
+Header:
+“SAHAYA AI ASSISTANT”
+
+Status:
+“● AI Assistant Online”
+
+Top-right:
+Reset Session
+
+Welcome message:
+
+“Hello! I’m your Sahaya AI Assistant. I can help you discover government schemes, check eligibility, calculate financial assistance, find required documents, locate authorized channel partners and guide you through the application process.”
+
+Prompt example:
+
+“Tell me about your requirement, business idea, funding need, education goal or any government assistance you are looking for.”
+
+Suggested quick actions:
+
+Find a Scheme
+Check Eligibility
+Calculate EMI
+Required Documents
+Find Nearby Partner
+Explain Recommendation
+
+Message composer:
+
++
+Text input
+Microphone button
+Send button
+
+==================================================
+7. MULTILINGUAL AI BEHAVIOR
+==================================================
+
+The chatbot MUST visually support multilingual and mixed-language conversations.
+
+Supported examples:
+
+English
+Tamil
+Hindi
+Telugu
+Malayalam
+Kannada
+and mixed-language input such as:
+
+“I want to start tailoring business, enakku 3 lakh funding venum.”
+
+The interface should show:
+
+Detected Language:
+Tamil + English
+
+Do NOT make the UI feel like a translation app.
+
+The assistant should naturally respond in the user's detected language or mixed-language style.
+
+Example:
+
+User:
+“Enakku tailoring business start panna loan venum.”
+
+Assistant:
+“Sure. உங்கள் tailoring business-க்கு பொருத்தமான government schemes-ஐ பார்க்கலாம்.”
+
+Show a small optional label:
+
+“Language detected: Tamil + English”
+
+==================================================
+8. TEXT MESSAGE BEHAVIOR
+==================================================
+
+If the user sends TEXT:
+
+USER:
+text message
+
+ASSISTANT:
+TEXT response
+
+The response should NOT automatically become a voice response simply because voice capability exists.
+
+However every AI response should have a small speaker icon.
+
+Example:
+
+AI response
+[🔊 Play]
+
+When the user clicks the speaker icon:
+- Play the response aloud
+- Change icon to pause/stop while playing
+- Show subtle “Playing response…” state
+
+==================================================
+9. VOICE MESSAGE BEHAVIOR
+==================================================
+
+If the user presses the microphone button:
+
+Show recording state:
+
+“Listening…”
+
+Animated microphone waveform
+
+Buttons:
+Cancel
+Stop Recording
+
+After recording:
+
+“Processing your voice…”
+
+Then:
+
+1. Speech-to-Text
+2. Language Detection
+3. AI Understanding
+4. Response Generation
+5. Text-to-Speech
+
+Display the recognized user message as text.
+
+Then display AI response:
+
+[AI voice waveform]
+“Playing response…”
+
+and below it:
+
+Full text response
+
+Speaker control:
+Pause / Replay
+
+IMPORTANT:
+Voice input MUST result in BOTH:
+- Voice response
+- Text response
+
+The text response must remain visible for accessibility and verification.
+
+==================================================
+10. AI RESPONSE CARD
+==================================================
+
+Design AI responses with:
+
+AI avatar
+Response text
+Speaker icon
+Copy icon
+Helpful / Not Helpful
+Optional “Why?” button
+
+For recommendation responses include structured cards.
+
+Example:
+
+“Based on your profile, these schemes may be suitable:”
+
+1. Scheme A
+Match Score: 94%
+Why:
+✓ Category matches
+✓ Income eligible
+✓ Purpose matches
+✓ Location supported
+
+2. Scheme B
+Match Score: 87%
+
+Buttons:
+
+View Scheme
+Check Eligibility
+Calculate EMI
+
+==================================================
+11. LIVE AI VOICE CALL
+==================================================
+
+Create a completely separate immersive voice-call screen.
+
+When the user clicks the global Call button:
+
+Open:
+
+“Talk to Sahaya AI”
+
+Center:
+Large animated AI assistant avatar
+
+Status:
+
+“Connecting…”
+
+then:
+
+“Connected”
+
+Show live waveform/audio visualization.
+
+Text:
+
+“Sahaya AI is listening…”
+
+During user speech:
+
+“Listening…”
+
+During AI response:
+
+“Sahaya AI is speaking…”
+
+Controls:
+
+Mute
+Speaker
+End Call
+Keypad / DTMF
+
+Also show live transcript:
+
+YOU:
+“I want to start a tailoring business…”
+
+SAHAYA AI:
+“Sure. I can help you find suitable schemes…”
+
+The call must feel like a real-time AI IVR/voice conversation, NOT a video call and NOT a normal chatbot.
+
+==================================================
+12. VOICE CALL FLOW
+==================================================
+
+Design these states:
+
+State 1:
+Incoming / Starting
+
+State 2:
+Connecting
+
+State 3:
+Connected + Listening
+
+State 4:
+Processing
+
+State 5:
+AI Speaking
+
+State 6:
+User interrupted AI
+
+State 7:
+Call ended
+
+Call ended screen:
+
+“Your conversation has been saved.”
+
+Buttons:
+
+Continue in Chat
+View Recommendations
+View Conversation
+Start New Session
+
+==================================================
+13. AI ORCHESTRATOR CONCEPT
+==================================================
+
+The UI should reflect that the AI assistant can perform multiple platform actions.
+
+Do NOT expose complicated technical architecture to normal users.
+
+Internally the assistant should conceptually perform:
+
+User Input
+↓
+Speech-to-Text if voice
+↓
+Language Detection
+↓
+AI Orchestrator / Agent
+↓
+Intent & Entity Extraction
+↓
+Profile Manager
+↓
+Eligibility Engine
+↓
+Scheme Matching & Ranking
+↓
+RAG / Knowledge Retrieval
+↓
+Financial Calculator
+↓
+Document Recommendation
+↓
+Channel Partner Locator
+↓
+Application Guidance
+↓
+Text + Voice Response
+
+Use these capabilities inside the product.
+
+==================================================
+14. ELIGIBILITY ENGINE UI
+==================================================
+
+Create an eligibility result page.
+
+Header:
+
+“Eligibility Assessment”
+
+Show:
+
+Profile Summary
+Age
+Category
+Annual Income
+Location
+Purpose
+Requested Amount
+
+Result:
+
+“Likely Eligible”
+
+with a clear explanation.
+
+Use:
+
+✓ Eligible criteria
+⚠ Information required
+✕ Not eligible criteria
+
+Never show the AI as blindly deciding eligibility.
+
+Include:
+
+“Eligibility is evaluated against the scheme's configured eligibility rules.”
+
+Buttons:
+
+View Scheme
+See Required Documents
+Calculate Financial Fit
+Find Partner
+Ask AI
+
+==================================================
+15. SCHEME MATCHING
+==================================================
+
+Create a sophisticated matching result screen.
+
+Header:
+
+“Your Recommended Schemes”
+
+Show ranked cards:
+
+#1 Best Match
+94% Match
+
+#2 Strong Match
+87% Match
+
+#3 Alternative
+81% Match
+
+For every recommendation show:
+
+Match score
+Reasons
+Eligibility status
+Assistance type
+Amount
+Interest
+Tenure
+Purpose
+
+Add:
+
+“Why this scheme?”
+
+When clicked, show an explainable breakdown.
+
+Example:
+
+Category match: ✓
+Age match: ✓
+Income match: ✓
+Purpose match: ✓
+Location match: ✓
+Financial requirement: ✓
+
+==================================================
+16. FINANCIAL CALCULATOR
+==================================================
+
+Create an interactive financial calculator.
+
+Inputs:
+
+Requested amount
+Interest rate
+Tenure
+Moratorium
+Repayment frequency
+
+Outputs:
+
+Estimated EMI
+Total interest
+Total repayment
+Principal
+Affordability indicator
+
+Use a clean visual card.
+
+Buttons:
+
+Compare Schemes
+Ask AI
+Continue Application
+
+IMPORTANT:
+Clearly label financial calculations as estimates where appropriate.
+
+==================================================
+17. REQUIRED DOCUMENTS
+==================================================
+
+Create personalized document checklist.
+
+Header:
+
+“Documents You May Need”
+
+Checklist:
+
+✓ Aadhaar
+✓ Category certificate
+✓ Income certificate
+✓ Bank account details
+✓ Business/project details
+□ Additional document
+
+Show:
+
+“Based on your selected scheme and profile.”
+
+Buttons:
+
+Upload Document
+View Instructions
+Ask AI
+
+Do NOT imply that uploading documents automatically submits a government application unless that functionality actually exists.
+
+==================================================
+18. CHANNEL PARTNER LOCATOR
+==================================================
+
+Create a nearby partner page.
+
+Header:
+
+“Find a Nearby Authorized Channel Partner”
+
+Include:
+
+Search location
+Use current location
+District selector
+
+Map area
+
+Partner cards:
+
+Partner name
+Branch
+Distance
+Address
+Available schemes
+Contact
+Working hours
+Availability/status
+
+Buttons:
+
+View Details
+Get Directions
+Call
+Ask AI
+
+Include routing concept:
+
+User Location
+↓
+Eligible Partners
+↓
+Distance + Availability
+↓
+Recommended Partner
+
+==================================================
+19. APPLICATION GUIDANCE
+==================================================
+
+Create a step-by-step application guidance page.
+
+Example:
+
+Step 1
+Confirm eligibility
+
+Step 2
+Prepare documents
+
+Step 3
+Contact selected channel partner
+
+Step 4
+Submit application
+
+Step 5
+Application processing
+
+Step 6
+Track status
+
+Each step should have:
+- status
+- explanation
+- required action
+- documents
+- AI help button
+
+==================================================
+20. USER PROFILE / DASHBOARD
+==================================================
+
+Create dashboard showing:
+
+User profile
+Category
+Location
+Saved schemes
+Recent AI conversations
+Eligibility assessments
+Recommended schemes
+Application progress
+Documents
+Nearby partners
+
+Cards:
+
+My Recommendations
+Saved Schemes
+Application Status
+Recent Conversations
+
+Include “Ask Sahaya AI” prominently.
+
+==================================================
+21. CONVERSATION HISTORY
+==================================================
+
+Create recent conversations like:
+
+Tailoring Business – OBC – ₹4L
+Retail Grocery Shop – ₹5L
+Dairy Farming – SC – ₹3.5L
+
+Each conversation can be reopened.
+
+Allow:
+
+Search
+Delete
+Rename
+Continue conversation
+
+==================================================
+22. HELP & FAQ
+==================================================
+
+Create Help & FAQs page.
+
+Categories:
+
+Eligibility
+Schemes
+Financial Assistance
+Documents
+Application
+Channel Partners
+Voice Assistant
+Account
+
+Include search.
+
+At bottom:
+
+“Still need help?”
+
+Buttons:
+
+Ask Sahaya AI
+Talk to Sahaya AI
+
+==================================================
+23. LOGIN / SIGN UP
+==================================================
+
+Create simple accessible authentication.
+
+Login:
+Mobile / Email
+Password / OTP
+
+Sign Up:
+Name
+Mobile
+Email
+Language preference
+Location
+
+Do not ask unnecessary sensitive information during initial registration.
+
+==================================================
+24. GLOBAL LANGUAGE SELECTOR
+==================================================
+
+Top navigation should include language selector.
+
+Languages:
+
+English
+தமிழ்
+हिन्दी
+తెలుగు
+ಕನ್ನಡ
+മലയാളം
+
+Changing the language should visually update navigation and UI labels where appropriate.
+
+The AI assistant should independently detect the language used in the conversation.
+
+==================================================
+25. ACCESSIBILITY
+==================================================
+
+This platform targets users who may have limited digital literacy.
+
+Therefore:
+
+- Large readable text
+- High contrast
+- Clear icons
+- Simple terminology
+- Avoid excessive technical language
+- Large touch targets
+- Voice-first interaction
+- Text alternative for every voice response
+- Clear error messages
+- Simple step-by-step instructions
+- Screen-reader-friendly structure
+- Do not depend only on color to communicate status
+
+==================================================
+26. ERROR / EDGE CASE STATES
+==================================================
+
+Design realistic states for:
+
+No scheme found
+Insufficient profile information
+Voice not understood
+Unsupported language
+Network unavailable
+AI temporarily unavailable
+No nearby partner
+No matching scheme
+User interrupts AI
+Microphone permission denied
+Call disconnected
+Session expired
+
+Example:
+
+“I need a little more information to find the right scheme.”
+
+Buttons:
+
+Answer Questions
+Try Again
+Talk to AI
+
+==================================================
+27. AI SAFETY / TRUST UI
+==================================================
+
+Add subtle trust messaging.
+
+Example:
+
+“Sahaya provides scheme information and guidance. Final eligibility and approval are determined by the respective authority/channel partner.”
+
+For AI-generated information:
+
+“AI-generated guidance — verify important details with the official scheme/authorized partner.”
+
+Do not make the interface claim that AI itself approves loans, subsidies or government benefits.
+
+==================================================
+28. RESPONSIVE DESIGN
+==================================================
+
+Create desktop, tablet and mobile layouts.
+
+Desktop:
+- Full navigation
+- Sidebar where appropriate
+- Floating AI + Call controls
+
+Tablet:
+- Condensed navigation
+- Collapsible sidebar
+
+Mobile:
+- Bottom navigation
+- Compact AI and Call floating buttons
+- Full-screen chatbot
+- Large microphone control
+- Large call interface
+- Cards stacked vertically
+
+==================================================
+29. PROTOTYPE INTERACTIONS
+==================================================
+
+Create clickable prototype flows.
+
+FLOW A:
+Home
+→ Find Your Scheme Now
+→ AI Matcher
+→ User enters requirement
+→ AI asks profile questions
+→ Eligibility
+→ Recommended Schemes
+→ Scheme Details
+→ Financial Calculator
+→ Required Documents
+→ Nearby Partner
+→ Application Guidance
+
+FLOW B:
+Any page
+→ Global AI Assistant icon
+→ Chatbot opens
+→ Text message
+→ Text AI response
+→ Speaker icon
+→ Voice playback
+
+FLOW C:
+Any page
+→ Global AI Assistant icon
+→ Microphone
+→ User speaks
+→ Listening
+→ Processing
+→ AI response
+→ Voice playback + text transcript
+
+FLOW D:
+Any page
+→ Global Call icon
+→ Connecting
+→ Live AI Voice Call
+→ User speaks
+→ AI responds naturally
+→ Live transcript
+→ End Call
+→ Continue in Chat
+
+FLOW E:
+Schemes Catalog
+→ Scheme Details
+→ Check Eligibility
+→ Eligibility Result
+→ Match Results
+→ Financial Calculator
+→ Partner Locator
+
+FLOW F:
+Scheme Details
+→ Required Documents
+→ Personalized Checklist
+→ Application Guidance
+
+==================================================
+30. DESIGN SYSTEM
+==================================================
+
+Create a reusable design system.
+
+Colors:
+Primary: deep navy
+Secondary: government blue
+Accent: gold/yellow
+Background: very light gray/white
+Cards: white
+Success: green
+Warning: amber
+Error: red
+
+Use subtle gradients only where appropriate.
+
+Typography:
+Modern sans-serif
+Strong hierarchy
+High readability
+
+Components:
+Buttons
+Cards
+Navbar
+Sidebar
+Tabs
+Inputs
+Dropdowns
+Search
+Modal
+Toast
+Chat bubbles
+AI response cards
+Voice waveform
+Audio controls
+Call controls
+Eligibility indicators
+Match score cards
+Document checklist
+Partner cards
+Map cards
+Progress steps
+Skeleton loaders
+Error states
+
+Use consistent 8px spacing principles and consistent border radius.
+
+==================================================
+31. IMPORTANT AI UX RULE
+==================================================
+
+The AI assistant should be context-aware across the whole website.
+
+For example:
+
+If the user is viewing a scheme and clicks “Ask Sahaya AI”, the assistant should know which scheme they are viewing.
+
+If the user is on the financial calculator and asks:
+
+“Can I afford this?”
+
+the assistant should understand the current scheme and financial calculation context.
+
+If the user is viewing a partner:
+
+“Is this partner suitable for my scheme?”
+
+the assistant should understand the selected scheme and partner context.
+
+Therefore design the AI as a GLOBAL CONTEXT-AWARE ASSISTANT, not a disconnected chatbot.
+
+==================================================
+32. FINAL PRODUCT EXPERIENCE
+==================================================
+
+The final design should communicate:
+
+TRADITIONAL EXPERIENCE:
+
+Search → Read → Understand → Check → Find Partner → Apply
+
+SAHAYA EXPERIENCE:
+
+Tell Sahaya what you need
+↓
+AI understands you
+↓
+AI checks eligibility
+↓
+AI finds the best schemes
+↓
+AI explains why
+↓
+AI calculates financial fit
+↓
+AI finds the right partner
+↓
+AI prepares document guidance
+↓
+AI guides your application
+
+The product must feel like one unified intelligent government-assistance ecosystem.
+
+Generate all screens, components, states, responsive versions and clickable prototype connections needed to demonstrate this complete experience from landing page to scheme discovery, AI chat, voice interaction, live AI call, eligibility, matching, financial calculation, documents, partner routing and application guidance.
+
+Do not create only static mockups.
+Create a coherent end-to-end Figma prototype with reusable components and realistic interaction states.

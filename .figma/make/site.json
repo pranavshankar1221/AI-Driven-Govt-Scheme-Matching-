@@ -1,0 +1,10 @@
+{
+  "description": "AI-powered platform helping marginalized users discover government schemes, check eligibility, calculate aid, find partners, and get guided application support.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
