@@ -91,7 +91,13 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
         voiceGender: 'female',
       });
 
-      const audioSrc = ttsResponse.audioUrl || (ttsResponse.audioBase64 ? `data:audio/mp3;base64,${ttsResponse.audioBase64}` : '');
+      let audioSrc = ttsResponse.audioUrl || '';
+      if (!audioSrc && ttsResponse.audioBase64) {
+        audioSrc = ttsResponse.audioBase64.startsWith('data:')
+          ? ttsResponse.audioBase64
+          : `data:audio/mp3;base64,${ttsResponse.audioBase64}`;
+      }
+
       if (!audioSrc) {
         setVoiceState('idle');
         setPlayingMessageId(null);
