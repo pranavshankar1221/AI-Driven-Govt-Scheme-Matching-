@@ -1,144 +1,206 @@
 import type { NavProps } from '../types';
 import { schemes } from '../data/schemes';
+import { useProfile } from '../context/ProfileContext';
+import { useLanguage } from '../context/LanguageContext';
 
-export default function Dashboard({ navigate }: NavProps) {
-  const savedSchemes = schemes.slice(0, 3);
+export default function Dashboard({ navigate, onBack }: NavProps) {
+  const { profile } = useProfile();
+  const { t, getLocalizedSchemes } = useLanguage();
+
+  const locSchemes = getLocalizedSchemes(schemes);
+
   const recentConversations = [
     { title: 'Tailoring business loan enquiry', date: '2 hours ago', preview: 'Found 3 matching schemes — PMEGP, MUDRA, Stand-Up India' },
-    { title: 'MUDRA eligibility check', date: 'Yesterday', preview: 'Eligible. 2 documents missing.' },
+    { title: 'MUDRA eligibility check', date: 'Yesterday', preview: 'Eligible. 2 documents pending verification.' },
     { title: 'EMI calculation for ₹3L loan', date: '3 days ago', preview: 'EMI: ₹7,052/month with 25% PMEGP subsidy' },
   ];
 
+  const userInitials = profile.name
+    ? profile.name.split(' ').map(n => n[0]).join('').slice(0, 2)
+    : 'RK';
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Dashboard</h1>
-          <p className="text-slate-400">Welcome back, Ravi Kumar</p>
-        </div>
-        <button onClick={() => navigate('ai-matcher')} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-          Find New Scheme
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {/* Contextual Back Button */}
+      <div className="mb-3">
+        <button
+          onClick={() => {
+            if (onBack) onBack();
+            else navigate('home');
+          }}
+          className="inline-flex items-center gap-1.5 text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold transition-colors"
+        >
+          <span>←</span>
+          <span>{t('back')}</span>
         </button>
       </div>
 
-      {/* User profile card */}
-      <div className="bg-gradient-to-r from-blue-700/30 to-[#0f1f3d] border border-blue-500/20 rounded-3xl p-6 mb-6 flex flex-col sm:flex-row gap-5 items-start sm:items-center">
-        <div className="w-16 h-16 rounded-2xl bg-blue-600/30 border border-blue-500/40 flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-2xl font-bold" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>RK</span>
-        </div>
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-white mb-1" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Ravi Kumar</h2>
-          <div className="flex flex-wrap gap-3 text-sm text-slate-400">
-            <span>📍 Coimbatore, Tamil Nadu</span>
-            <span>👤 OBC · Age 28</span>
-            <span>🏢 Urban</span>
-            <span>💼 Tailoring Business</span>
-          </div>
-        </div>
-        <button className="text-sm border border-white/15 hover:border-white/30 text-slate-300 hover:text-white px-4 py-2 rounded-xl transition-colors">Edit Profile</button>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 theme-text-muted text-xs sm:text-sm mb-4">
+        <button onClick={() => navigate('home')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('home')}</button>
+        <span>/</span>
+        <span className="theme-text-main font-semibold">{t('dashboard')}</span>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b theme-border">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold theme-text-main tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            {t('dashboard')}
+          </h1>
+          <p className="theme-text-muted text-xs sm:text-sm mt-0.5">{profile.name || 'Citizen'} · {t('portalName')}</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('profile', undefined, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+            className="px-3.5 py-2 gov-btn-secondary text-xs flex items-center gap-1.5"
+          >
+            <span>👤 {t('myProfile')}</span>
+          </button>
+          <button
+            onClick={() => navigate('ai-matcher', undefined, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+            className="px-3.5 py-2 gov-btn-primary text-xs flex items-center gap-1.5"
+          >
+            <span>{t('matchUsingAi')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Profile Overview Card */}
+      <div className="theme-card rounded-lg p-5 mb-6 flex flex-col sm:flex-row gap-4 items-start sm:items-center border theme-border shadow-sm">
+        <div className="w-12 h-12 rounded-lg bg-[#004b87] text-white flex items-center justify-center flex-shrink-0 font-extrabold text-lg shadow-sm">
+          {userInitials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h2 className="text-base font-bold theme-text-main tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+              {profile.name || 'Citizen'}
+            </h2>
+            <span className="text-[10px] text-emerald-800 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded font-semibold uppercase">
+              {t('docsReady')}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs theme-text-muted">
+            <span>{profile.city || 'Coimbatore'}, {profile.state || 'Tamil Nadu'}</span>
+            <span>•</span>
+            <span>{t('beneficiaryCategory')}: {profile.category || 'OBC'}</span>
+            <span>•</span>
+            <span>{t('annualIncome')}: ₹{Number(profile.annualIncome || 240000).toLocaleString('en-IN')}/{t('years')}</span>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate('profile', undefined, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+          className="text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold"
+        >
+          {t('myProfile')} →
+        </button>
+      </div>
+
+      {/* Quick Access Grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Schemes Matched', value: '4', icon: '🎯', color: 'text-blue-400', bg: 'bg-blue-600/10', border: 'border-blue-500/20' },
-          { label: 'Saved Schemes', value: '3', icon: '📌', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-          { label: 'Eligibility Score', value: '87%', icon: '✅', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-          { label: 'AI Conversations', value: '7', icon: '💬', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
-        ].map(({ label, value, icon, color, bg, border }) => (
-          <div key={label} className={`${bg} border ${border} rounded-2xl p-4`}>
-            <p className="text-2xl mb-2">{icon}</p>
-            <p className={`text-2xl font-bold ${color} mb-0.5`} style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{value}</p>
-            <p className="text-xs text-slate-500">{label}</p>
+          { title: t('aiMatcher'), desc: t('feat1Desc'), page: 'ai-matcher' as const, icon: '✦', badge: 'AI Powered' },
+          { title: t('schemes'), desc: t('catalogSubtitle'), page: 'catalog' as const, icon: '📂', badge: '500+ Schemes' },
+          { title: t('channelPartners'), desc: t('feat5Desc'), page: 'partners' as const, icon: '🏦', badge: 'Accredited' },
+          { title: t('myProfile'), desc: t('savedProfileSubtitle'), page: 'profile' as const, icon: '📄', badge: 'Locker Ready' },
+        ].map(item => (
+          <div
+            key={item.title}
+            onClick={() => navigate(item.page, undefined, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+            className="theme-card theme-card-hover rounded-lg p-5 transition-all cursor-pointer border theme-border shadow-sm flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xl">{item.icon}</span>
+                <span className="text-[10px] theme-text-muted font-semibold theme-card-subtle px-2 py-0.5 rounded border theme-border">
+                  {item.badge}
+                </span>
+              </div>
+              <h3 className="theme-text-main font-bold text-sm mb-1">{item.title}</h3>
+              <p className="theme-text-muted text-xs leading-relaxed">{item.desc}</p>
+            </div>
+            <p className="text-xs text-[#004b87] dark:text-sky-300 font-semibold mt-3 flex items-center gap-1">
+              <span>{t('viewDetails')}</span>
+              <span>→</span>
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Recommended schemes */}
-        <div className="lg:col-span-2">
-          <h2 className="text-lg font-bold text-white mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Recommended for You</h2>
-          <div className="space-y-3">
-            {[
-              { ...schemes[0], match: 94, reason: 'Best fit for your tailoring business in urban Coimbatore' },
-              { ...schemes[1], match: 88, reason: 'Quick loan without collateral — ideal for working capital' },
-              { ...schemes[2], match: 72, reason: 'High loan limit if SC/ST or woman entrepreneur' },
-            ].map((scheme, i) => (
-              <div key={scheme.id} className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-4 flex gap-4 hover:border-blue-500/30 transition-colors">
-                <div className="text-center flex-shrink-0">
-                  <span className={`text-xl font-bold ${i === 0 ? 'text-emerald-400' : i === 1 ? 'text-blue-400' : 'text-amber-400'}`} style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{scheme.match}%</span>
-                  <p className="text-xs text-slate-600">match</p>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold text-sm mb-0.5 truncate">{scheme.name}</h3>
-                  <p className="text-xs text-slate-500 mb-2">{scheme.reason}</p>
-                  <div className="flex gap-2">
-                    <button onClick={() => navigate('scheme-details', scheme.id)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">View →</button>
-                    <button onClick={() => navigate('eligibility', scheme.id)} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">Check Eligibility</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Recommended Schemes for User */}
+      <div className="theme-card rounded-lg p-5 mb-6 border theme-border shadow-sm">
+        <div className="flex items-center justify-between mb-4 border-b theme-border pb-2.5">
+          <h2 className="text-sm font-bold theme-text-main uppercase tracking-wider" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            {t('recommendedSchemes')}
+          </h2>
+          <button
+            onClick={() => navigate('catalog', undefined, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+            className="text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold"
+          >
+            {t('browseAllSchemes')} →
+          </button>
         </div>
 
-        {/* Right sidebar */}
-        <div className="space-y-5">
-          {/* Recent conversations */}
-          <div className="bg-[#0f1f3d] border border-white/8 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/5">
-              <h3 className="text-white font-semibold text-sm">Recent Conversations</h3>
-              <button onClick={() => navigate('conversations')} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">View all</button>
-            </div>
-            <div className="divide-y divide-white/5">
-              {recentConversations.map((conv, i) => (
-                <button key={i} onClick={() => navigate('conversations')} className="w-full px-5 py-3.5 text-left hover:bg-white/3 transition-colors">
-                  <p className="text-white text-xs font-medium mb-0.5 truncate">{conv.title}</p>
-                  <p className="text-slate-500 text-xs truncate">{conv.preview}</p>
-                  <p className="text-slate-600 text-xs mt-1">{conv.date}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Application status */}
-          <div className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-5">
-            <h3 className="text-white font-semibold text-sm mb-4">Application Progress</h3>
-            <div className="space-y-3">
-              {[
-                { label: 'PMEGP Application', status: 'Document Collection', pct: 25, color: 'bg-amber-500' },
-                { label: 'MUDRA Enquiry', status: 'Eligibility Checked', pct: 40, color: 'bg-blue-600' },
-              ].map(({ label, status, pct, color }) => (
-                <div key={label}>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-slate-300">{label}</span>
-                    <span className="text-slate-500">{status}</span>
-                  </div>
-                  <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
-                    <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
-                  </div>
+        <div className="grid md:grid-cols-3 gap-3">
+          {locSchemes.slice(0, 3).map((scheme, i) => (
+            <div key={scheme.id} className="theme-card-subtle rounded-lg p-4 border theme-border flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] text-[#004b87] dark:text-sky-300 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.2 rounded font-semibold">
+                    {scheme.type}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+                    {95 - i * 6}% {t('matchScore')}
+                  </span>
                 </div>
-              ))}
-            </div>
-            <button onClick={() => navigate('guidance')} className="w-full mt-4 text-xs border border-white/15 hover:border-white/30 text-slate-300 hover:text-white py-2 rounded-xl transition-colors">View Application Guidance →</button>
-          </div>
+                <h4 className="theme-text-main font-bold text-xs sm:text-sm mb-0.5">{scheme.name}</h4>
+                <p className="theme-text-muted text-[10px] line-clamp-1 mb-2">{scheme.organization}</p>
+                <p className="text-xs text-amber-800 dark:text-amber-300 font-bold mb-3">{scheme.financialAssistance}</p>
+              </div>
 
-          {/* Saved schemes */}
-          <div className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold text-sm">Saved Schemes</h3>
-              <button onClick={() => navigate('catalog')} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Browse more</button>
-            </div>
-            <div className="space-y-2">
-              {savedSchemes.map(s => (
-                <button key={s.id} onClick={() => navigate('scheme-details', s.id)} className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors text-left">
-                  <span className="text-amber-400">📌</span>
-                  <p className="text-slate-300 text-xs truncate">{s.name}</p>
+              <div className="flex gap-2 text-xs">
+                <button
+                  onClick={() => navigate('scheme-details', scheme.id, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+                  className="flex-1 py-1.5 gov-btn-primary text-center text-[11px]"
+                >
+                  {t('viewScheme')}
                 </button>
-              ))}
+                <button
+                  onClick={() => navigate('eligibility', scheme.id, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+                  className="flex-1 py-1.5 gov-btn-secondary text-center text-[11px]"
+                >
+                  {t('checkEligibility')}
+                </button>
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent Consultation History */}
+      <div className="theme-card rounded-lg p-5 border theme-border shadow-sm">
+        <div className="flex items-center justify-between mb-3 border-b theme-border pb-2.5">
+          <h2 className="text-sm font-bold theme-text-main uppercase tracking-wider" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            {t('chatHistory')}
+          </h2>
+          <button
+            onClick={() => navigate('conversations', undefined, { fromPage: 'dashboard', fromLabel: 'Dashboard' })}
+            className="text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold"
+          >
+            {t('viewDetails')} →
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {recentConversations.map((c, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-lg theme-card-subtle border theme-border text-xs">
+              <div>
+                <p className="theme-text-main font-semibold">{c.title}</p>
+                <p className="theme-text-muted text-[11px] mt-0.5">{c.preview}</p>
+              </div>
+              <span className="theme-text-muted text-[10px] whitespace-nowrap">{c.date}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 export type Page =
   | 'home' | 'catalog' | 'scheme-details' | 'ai-matcher'
   | 'eligibility' | 'calculator' | 'documents' | 'partners'
-  | 'guidance' | 'dashboard' | 'conversations' | 'faq' | 'login';
+  | 'guidance' | 'dashboard' | 'conversations' | 'faq' | 'login' | 'profile';
 
 export interface Scheme {
   id: string;
@@ -37,6 +37,12 @@ export interface Partner {
 }
 
 export interface NavProps {
-  navigate: (page: Page, schemeId?: string) => void;
+  navigate: (page: Page, schemeId?: string, sourceContext?: { fromPage?: Page; fromLabel?: string }) => void;
   currentPage: Page;
+  previousPage?: Page;
+  previousLabel?: string;
+  onBack?: () => void;
+  fromPage?: Page;
+  fromLabel?: string;
+  selectedSchemeId?: string;
 }

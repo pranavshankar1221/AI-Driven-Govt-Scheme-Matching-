@@ -18,7 +18,7 @@ export class ApiError extends Error {
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || '/api';
 
 /**
- * Centralized HTTP request helper
+ * Centralized HTTP request helper with robust single-read body handling
  */
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
@@ -35,27 +35,34 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
   try {
     const res = await fetch(url, config);
+    const rawText = await res.text();
 
     if (!res.ok) {
-      let errorBody: unknown;
+      let errorData: unknown = rawText;
       try {
-        errorBody = await res.json();
+        if (rawText && rawText.trim()) {
+          errorData = JSON.parse(rawText);
+        }
       } catch {
-        errorBody = await res.text();
+        // use raw text
       }
       throw new ApiError(
         `API request failed: ${res.status} ${res.statusText}`,
         res.status,
-        errorBody
+        errorData
       );
     }
 
-    // Handle 204 No Content
-    if (res.status === 204) {
+    // Handle 204 No Content or empty body
+    if (res.status === 204 || !rawText || !rawText.trim()) {
       return {} as T;
     }
 
-    return (await res.json()) as T;
+    try {
+      return JSON.parse(rawText) as T;
+    } catch {
+      return rawText as unknown as T;
+    }
   } catch (err) {
     if (err instanceof ApiError) {
       throw err;

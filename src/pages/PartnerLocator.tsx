@@ -1,145 +1,282 @@
 import { useState } from 'react';
 import type { NavProps } from '../types';
 import { partners } from '../data/schemes';
+import { useLanguage } from '../context/LanguageContext';
 
-export default function PartnerLocator({ navigate }: NavProps) {
+export default function PartnerLocator({
+  navigate,
+  previousPage,
+  previousLabel,
+  onBack,
+  selectedSchemeId,
+}: NavProps) {
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('All');
   const [selected, setSelected] = useState<string | null>(null);
+  const { t, getLocalizedPartners } = useLanguage();
 
+  const locPartners = getLocalizedPartners(partners);
   const types = ['All', 'Public Sector Bank', 'Government Office', 'Government Agency', 'NBFC / MFI'];
-  const filtered = partners.filter(p => {
+  const filtered = locPartners.filter(p => {
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.address.toLowerCase().includes(search.toLowerCase());
     const matchType = selectedType === 'All' || p.type === selectedType;
     return matchSearch && matchType;
   });
 
-  const selectedPartner = partners.find(p => p.id === selected);
+  const selectedPartner = locPartners.find(p => p.id === selected);
 
-  const Star = ({ filled }: { filled: boolean }) => (
-    <svg className={`w-3.5 h-3.5 ${filled ? 'text-amber-400' : 'text-slate-600'}`} fill="currentColor" viewBox="0 0 20 20">
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-  );
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
+    } else if (previousPage === 'scheme-details' && selectedSchemeId) {
+      navigate('scheme-details', selectedSchemeId);
+    } else if (previousPage === 'ai-matcher') {
+      navigate('ai-matcher');
+    } else {
+      navigate('home');
+    }
+  };
+
+  const backLabel =
+    previousPage === 'scheme-details'
+      ? t('backToSchemeDetails')
+      : previousPage === 'ai-matcher'
+      ? t('backToAiMatcherResults')
+      : previousLabel
+      ? previousLabel
+      : t('back');
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
-          <button onClick={() => navigate('home')} className="hover:text-white transition-colors">Home</button>
-          <span>/</span>
-          <span className="text-white">Partner Locator</span>
-        </div>
-        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Find Authorized Partners</h1>
-        <p className="text-slate-400">Locate banks, government offices, and agencies near you where you can apply for schemes.</p>
-      </div>
-
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or area — e.g. Anna Nagar, T. Nagar…" className="w-full bg-[#0f1f3d] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 transition-colors" />
-        </div>
-        <button className="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          Use My Location
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Contextual Back Button */}
+      <div className="mb-3">
+        <button
+          onClick={handleBackClick}
+          className="inline-flex items-center gap-1.5 text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold transition-colors"
+        >
+          <span>←</span>
+          <span>{backLabel}</span>
         </button>
       </div>
 
-      {/* Type filter */}
-      <div className="flex gap-2 flex-wrap mb-6">
-        {types.map(t => (
-          <button key={t} onClick={() => setSelectedType(t)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${selectedType === t ? 'bg-blue-600 border-blue-600 text-white' : 'border-white/15 text-slate-400 hover:border-white/30 hover:text-white'}`}>{t}</button>
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 theme-text-muted text-xs sm:text-sm mb-4 flex-wrap">
+        <button onClick={() => navigate('home')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('home')}</button>
+        <span>/</span>
+        {previousPage === 'ai-matcher' ? (
+          <>
+            <button onClick={() => navigate('ai-matcher')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('aiMatcher')}</button>
+            <span>/</span>
+            {selectedSchemeId && (
+              <>
+                <button onClick={() => navigate('scheme-details', selectedSchemeId)} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors uppercase font-mono">{selectedSchemeId}</button>
+                <span>/</span>
+              </>
+            )}
+          </>
+        ) : previousPage === 'scheme-details' && selectedSchemeId ? (
+          <>
+            <button onClick={() => navigate('catalog')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('schemes')}</button>
+            <span>/</span>
+            <button onClick={() => navigate('scheme-details', selectedSchemeId)} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors uppercase font-mono">{selectedSchemeId}</button>
+            <span>/</span>
+          </>
+        ) : (
+          <>
+            <button onClick={() => navigate('catalog')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('schemes')}</button>
+            <span>/</span>
+          </>
+        )}
+        <span className="theme-text-main font-semibold">{t('channelPartners')}</span>
+      </div>
+
+      {/* Header */}
+      <div className="mb-6 pb-3 border-b theme-border">
+        <h1 className="text-2xl sm:text-3xl font-bold theme-text-main tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+          {t('channelPartners')}
+        </h1>
+        <p className="theme-text-muted text-xs sm:text-sm mt-0.5">
+          {t('partnerSubtitle')}
+        </p>
+      </div>
+
+      {/* Search Bar & Location Controls */}
+      <div className="flex flex-col sm:flex-row gap-2.5 mb-5">
+        <div className="relative flex-1">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t('searchLocationPlaceholder')}
+            className="w-full theme-input rounded pl-10 pr-4 py-2.5 theme-text-main text-xs sm:text-sm outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Filter Chips */}
+      <div className="flex gap-1.5 flex-wrap mb-5">
+        {types.map(tOption => (
+          <button
+            key={tOption}
+            onClick={() => setSelectedType(tOption)}
+            className={`text-xs px-3 py-1 rounded transition-colors font-medium border ${
+              selectedType === tOption
+                ? 'bg-[#004b87] text-white border-[#004b87] font-semibold'
+                : 'border-slate-200 dark:border-white/10 theme-text-muted hover:theme-text-main theme-card-subtle'
+            }`}
+          >
+            {tOption === 'All' ? t('allPartners') : tOption}
+          </button>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-5 gap-5">
-        {/* Map placeholder */}
-        <div className="lg:col-span-3 bg-[#0f1f3d] border border-white/8 rounded-2xl overflow-hidden relative" style={{ minHeight: '400px' }}>
-          {/* Mock map */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0f1f3d] to-[#132040]">
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        {/* Styled Map Container */}
+        <div className="lg:col-span-3 theme-card rounded-md overflow-hidden relative shadow-xs border theme-border min-h-[380px]">
+          <div className="absolute inset-0 bg-slate-100 dark:bg-slate-900/50">
+            <div
+              className="absolute inset-0 opacity-10"
+              style={{
+                backgroundImage: 'linear-gradient(#004b87 1px, transparent 1px), linear-gradient(90deg, #004b87 1px, transparent 1px)',
+                backgroundSize: '32px 32px'
+              }}
+            />
           </div>
 
-          {/* Map pins */}
+          {/* Map Pins */}
           {filtered.map((p, i) => {
-            const positions = [{ top: '35%', left: '45%' }, { top: '55%', left: '60%' }, { top: '45%', left: '30%' }, { top: '65%', left: '50%' }];
+            const positions = [{ top: '35%', left: '42%' }, { top: '58%', left: '62%' }, { top: '42%', left: '28%' }, { top: '68%', left: '48%' }];
             const pos = positions[i] || { top: '50%', left: '50%' };
+            const isSelected = selected === p.id;
             return (
-              <button key={p.id} onClick={() => setSelected(selected === p.id ? null : p.id)} style={{ position: 'absolute', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)' }} className="group">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg transition-transform group-hover:scale-110 ${selected === p.id ? 'bg-blue-600 scale-110' : 'bg-blue-700'}`}>
+              <button
+                key={p.id}
+                onClick={() => setSelected(isSelected ? null : p.id)}
+                style={{ position: 'absolute', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)' }}
+                className="group z-10 transition-transform"
+                aria-label={`Partner pin: ${p.name}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md transition-all border ${
+                  isSelected
+                    ? 'bg-[#004b87] border-white scale-110'
+                    : 'bg-[#002b54] border-white/60 hover:bg-[#004b87]'
+                }`}>
                   {i + 1}
                 </div>
-                {selected === p.id && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[#132040] border border-white/15 rounded-xl p-3 w-52 text-left shadow-2xl">
-                    <p className="text-white text-xs font-semibold">{p.name}</p>
-                    <p className="text-slate-400 text-xs mt-0.5">{p.distance}</p>
+
+                {isSelected && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 theme-card rounded p-2.5 w-52 text-left shadow-lg z-20 border theme-border">
+                    <p className="theme-text-main text-xs font-bold truncate">{p.name}</p>
+                    <p className="text-[#004b87] dark:text-sky-300 text-[10px] font-semibold">{p.distance} · {p.hours}</p>
+                    <p className="theme-text-muted text-[10px] mt-0.5 line-clamp-1">{p.address}</p>
                   </div>
                 )}
               </button>
             );
           })}
 
-          <div className="absolute bottom-4 left-4 glass rounded-xl px-3 py-2">
-            <p className="text-white text-xs font-medium">Chennai, Tamil Nadu</p>
-            <p className="text-slate-400 text-xs">{filtered.length} partners nearby</p>
+          {/* Location Badge */}
+          <div className="absolute bottom-3 left-3 theme-card rounded px-3 py-1.5 shadow-sm border theme-border text-xs">
+            <p className="theme-text-main font-semibold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>{t('available')}</span>
+            </p>
+            <p className="theme-text-muted text-[10px]">{filtered.length} {t('supportedSchemes')}</p>
           </div>
         </div>
 
-        {/* Partner cards */}
-        <div className="lg:col-span-2 space-y-3 overflow-y-auto max-h-[600px]">
-          {filtered.map((p, i) => (
-            <div
-              key={p.id}
-              onClick={() => setSelected(selected === p.id ? null : p.id)}
-              className={`bg-[#0f1f3d] border rounded-2xl p-4 cursor-pointer transition-all ${selected === p.id ? 'border-blue-500/50 bg-blue-600/5' : 'border-white/8 hover:border-white/20'}`}
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">{i + 1}</span>
-                    <span className="text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full truncate">{p.type}</span>
+        {/* Partner Cards Feed */}
+        <div className="lg:col-span-2 space-y-3">
+          {filtered.map((p, i) => {
+            const isSelected = selected === p.id;
+            return (
+              <div
+                key={p.id}
+                onClick={() => setSelected(isSelected ? null : p.id)}
+                className={`theme-card rounded-md p-4 transition-colors cursor-pointer border shadow-xs ${
+                  isSelected ? 'border-[#004b87] dark:border-sky-400 ring-1 ring-[#004b87]' : 'theme-border hover:border-slate-400'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-[#004b87] text-white flex items-center justify-center font-bold text-[10px]">
+                      {i + 1}
+                    </span>
+                    <h2 className="theme-text-main font-bold text-xs sm:text-sm" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                      {p.name}
+                    </h2>
                   </div>
-                  <h3 className="text-white font-semibold text-sm leading-snug">{p.name}</h3>
+                  <span className="text-[10px] theme-text-muted font-semibold bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded">
+                    {p.distance}
+                  </span>
                 </div>
-                <span className="text-xs text-emerald-400 font-medium bg-emerald-400/10 px-2 py-1 rounded-lg flex-shrink-0">{p.distance}</span>
-              </div>
 
-              <div className="space-y-1.5 mb-3">
-                <div className="flex gap-2 text-xs text-slate-400">
-                  <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
-                  <span>{p.address}</span>
+                <p className="text-[11px] text-[#004b87] dark:text-sky-300 font-semibold mb-1">{p.type}</p>
+                <p className="theme-text-muted text-[11px] mb-2 leading-relaxed">{p.address}</p>
+
+                <div className="flex flex-wrap gap-1 mb-3">
+                  {p.schemes.map(s => (
+                    <span key={s} className="text-[9px] theme-card-subtle theme-text-muted px-1.5 py-0.2 rounded border theme-border font-medium">
+                      {s}
+                    </span>
+                  ))}
                 </div>
-                <div className="flex gap-2 text-xs text-slate-400">
-                  <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span>{p.hours}</span>
+
+                <div className="flex gap-2 pt-2 border-t theme-border text-xs">
+                  <a
+                    href={`tel:${p.phone}`}
+                    onClick={e => e.stopPropagation()}
+                    className="flex-1 py-1.5 gov-btn-secondary text-center"
+                  >
+                    📞 {t('contact')}
+                  </a>
+                  <button
+                    onClick={e => { e.stopPropagation(); setSelected(p.id); }}
+                    className="flex-1 py-1.5 gov-btn-primary text-center"
+                  >
+                    {t('viewDetails')}
+                  </button>
                 </div>
               </div>
-
-              <div className="flex items-center gap-1 mb-3">
-                {[1,2,3,4,5].map(s => <Star key={s} filled={s <= Math.round(p.rating)} />)}
-                <span className="text-xs text-slate-400 ml-1">{p.rating} ({p.reviewCount})</span>
-              </div>
-
-              <div className="flex flex-wrap gap-1 mb-3">
-                {p.schemes.slice(0, 3).map(s => (
-                  <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">{s}</span>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <a href={`tel:${p.phone}`} className="flex-1 text-xs border border-white/15 hover:border-white/30 text-slate-300 hover:text-white py-1.5 rounded-lg transition-colors text-center">
-                  📞 Call
-                </a>
-                <button className="flex-1 text-xs bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded-lg transition-colors font-medium">
-                  Get Directions
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {selectedPartner && (
+        <div className="mt-6 theme-card rounded-md p-5 border theme-border shadow-sm">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="text-base font-bold theme-text-main">{selectedPartner.name}</h3>
+              <p className="text-xs text-[#004b87] dark:text-sky-300 font-semibold">{selectedPartner.type} · {selectedPartner.distance}</p>
+            </div>
+            <button
+              onClick={() => setSelected(null)}
+              className="text-xs text-slate-400 hover:text-slate-600 font-bold"
+            >
+              ✕ {t('close')}
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3 text-xs">
+            <div className="theme-card-subtle rounded p-2.5 border theme-border">
+              <span className="text-[10px] theme-text-muted uppercase font-bold block">Address</span>
+              <p className="theme-text-main mt-0.5">{selectedPartner.address}</p>
+            </div>
+            <div className="theme-card-subtle rounded p-2.5 border theme-border">
+              <span className="text-[10px] theme-text-muted uppercase font-bold block">{t('contact')}</span>
+              <p className="theme-text-main mt-0.5">{selectedPartner.phone}</p>
+              <p className="theme-text-muted text-[10px]">{selectedPartner.email}</p>
+            </div>
+            <div className="theme-card-subtle rounded p-2.5 border theme-border">
+              <span className="text-[10px] theme-text-muted uppercase font-bold block">{t('operatingHours')}</span>
+              <p className="theme-text-main mt-0.5">{selectedPartner.hours}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

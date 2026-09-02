@@ -1,44 +1,48 @@
+import { useLanguage } from '../context/LanguageContext';
+
 interface Props {
   onAIOpen: () => void;
   onCallOpen: () => void;
 }
 
 export default function FloatingButtons({ onAIOpen, onCallOpen }: Props) {
+  const { t } = useLanguage();
+
   return (
-    <div className="fixed bottom-6 right-4 sm:right-6 z-30 flex flex-col items-end gap-3">
-      {/* Voice Call button */}
+    <aside className="fixed bottom-6 right-4 sm:right-6 z-30 flex flex-col items-end gap-2.5 pointer-events-auto" aria-label="Quick AI and Voice Assistance">
+      {/* Live Voice Call Button */}
       <div className="group flex items-center gap-2">
-        <span className="hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity bg-[#132040] text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 whitespace-nowrap">
-          Talk to Sahaya AI
+        <span className="hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-slate-900 text-white text-xs font-medium px-2.5 py-1 rounded shadow-md pointer-events-none whitespace-nowrap">
+          Voice Call
         </span>
         <button
           onClick={onCallOpen}
-          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl hover:shadow-emerald-500/25 transition-all duration-200 flex items-center justify-center hover:scale-105 active:scale-95"
-          aria-label="Talk to Sahaya AI"
+          className="w-11 h-11 rounded-lg bg-[#15803d] hover:bg-[#166534] text-white shadow-lg transition-all duration-150 flex items-center justify-center border border-white/20"
+          aria-label="Start Live Voice Call"
+          title="Start Live Voice Call"
         >
-          <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
         </button>
       </div>
 
-      {/* AI Assistant button */}
+      {/* AI Assistant Button */}
       <div className="group flex items-center gap-2">
-        <span className="hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity bg-[#132040] text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 whitespace-nowrap">
-          Sahaya AI Assistant
+        <span className="hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-slate-900 text-white text-xs font-medium px-2.5 py-1 rounded shadow-md pointer-events-none whitespace-nowrap">
+          {t('askAi')}
         </span>
         <button
           onClick={onAIOpen}
-          className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-2xl hover:shadow-blue-500/30 transition-all duration-200 flex items-center justify-center hover:scale-105 active:scale-95 relative"
-          aria-label="Open Sahaya AI Assistant"
+          className="w-12 h-12 rounded-lg bg-[#004b87] hover:bg-[#003366] text-white shadow-lg transition-all duration-150 flex items-center justify-center border border-white/20"
+          aria-label={t('askAi')}
+          title={t('askAi')}
         >
-          {/* Pulse ring */}
-          <span className="absolute inset-0 rounded-full bg-blue-600 opacity-40 animate-pulse-ring" />
-          <svg className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
         </button>
       </div>
-    </div>
+    </aside>
   );
 }

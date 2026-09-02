@@ -1,93 +1,134 @@
 import { useState } from 'react';
 import type { NavProps } from '../types';
 import { faqs } from '../data/schemes';
+import { useLanguage } from '../context/LanguageContext';
 
 const categories = [
-  { label: 'Getting Started', icon: '🚀', questions: [0, 5] },
-  { label: 'Schemes & Eligibility', icon: '📋', questions: [1, 4] },
-  { label: 'Privacy & Security', icon: '🔒', questions: [2] },
-  { label: 'AI Assistant', icon: '🤖', questions: [7] },
-  { label: 'Languages', icon: '🌐', questions: [3] },
-  { label: 'Partners & Application', icon: '🏦', questions: [6] },
+  { label: 'Getting Started' },
+  { label: 'Schemes & Eligibility' },
+  { label: 'Privacy & Security' },
+  { label: 'AI Assistance' },
+  { label: 'Multilingual Support' },
+  { label: 'Bank Partners' },
 ];
 
-export default function HelpFAQ({ navigate }: NavProps) {
+export default function HelpFAQ({ navigate, onBack }: NavProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const { t, getLocalizedFAQs } = useLanguage();
 
-  const filtered = faqs.filter(f =>
+  const locFaqs = getLocalizedFAQs();
+
+  const filtered = locFaqs.filter(f =>
     !search || f.q.toLowerCase().includes(search.toLowerCase()) || f.a.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-      <div className="flex items-center gap-2 text-slate-500 text-sm mb-6">
-        <button onClick={() => navigate('home')} className="hover:text-white transition-colors">Home</button>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      {/* Contextual Back Button */}
+      <div className="mb-3">
+        <button
+          onClick={() => {
+            if (onBack) onBack();
+            else navigate('home');
+          }}
+          className="inline-flex items-center gap-1.5 text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold transition-colors"
+        >
+          <span>←</span>
+          <span>{t('back')}</span>
+        </button>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 theme-text-muted text-xs sm:text-sm mb-4">
+        <button onClick={() => navigate('home')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('home')}</button>
         <span>/</span>
-        <span className="text-white">Help & FAQs</span>
+        <span className="theme-text-main font-semibold">{t('help')}</span>
       </div>
 
       {/* Header */}
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold text-white mb-3" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>How can we help?</h1>
-        <p className="text-slate-400 mb-6">Find answers to common questions about Sahaya</p>
-        <div className="relative max-w-xl mx-auto">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search your question…" className="w-full bg-[#0f1f3d] border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 transition-colors" />
-        </div>
+      <div className="mb-6 pb-3 border-b theme-border">
+        <h1 className="text-2xl sm:text-3xl font-bold theme-text-main tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+          {t('faqsTitle')}
+        </h1>
+        <p className="theme-text-muted text-xs sm:text-sm mt-0.5">
+          {t('faqsSubtitle')}
+        </p>
       </div>
 
-      {/* Categories */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-10">
-        {categories.map(({ label, icon }) => (
-          <button key={label} onClick={() => setSelectedCat(selectedCat === label ? null : label)} className={`flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${selectedCat === label ? 'bg-blue-600/15 border-blue-500/40 text-white' : 'bg-[#0f1f3d] border-white/8 text-slate-400 hover:border-white/20 hover:text-white'}`}>
-            <span className="text-2xl">{icon}</span>
-            <span className="text-sm font-medium">{label}</span>
+      {/* Search Bar */}
+      <div className="mb-5">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={t('catalogSearchPlaceholder')}
+          className="w-full theme-input rounded-lg px-4 py-2.5 theme-text-main text-xs sm:text-sm outline-none shadow-sm"
+        />
+      </div>
+
+      {/* Category Filter Pills */}
+      <div className="flex gap-2 flex-wrap mb-6">
+        {categories.map(({ label }) => (
+          <button
+            key={label}
+            onClick={() => setSelectedCat(selectedCat === label ? null : label)}
+            className={`text-xs px-3.5 py-1.5 rounded-full transition-all font-medium border ${
+              selectedCat === label
+                ? 'bg-[#004b87] border-[#004b87] text-white font-semibold shadow-sm'
+                : 'border-slate-200 dark:border-white/10 theme-card-subtle theme-text-muted hover:theme-text-main'
+            }`}
+          >
+            {label}
           </button>
         ))}
       </div>
 
-      {/* FAQ accordion */}
-      <div className="mb-10">
-        <h2 className="text-xl font-bold text-white mb-5" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
-          {search ? `Results for "${search}"` : 'All Questions'}
-        </h2>
-        {filtered.length === 0 && (
-          <div className="text-center py-10 text-slate-500">
-            <p className="text-2xl mb-2">🤔</p>
-            <p>No results found. Try asking the AI Assistant instead.</p>
+      {/* FAQ Accordion List */}
+      <div className="space-y-2.5 mb-8">
+        {filtered.length === 0 ? (
+          <div className="text-center py-8 theme-card rounded-lg p-6 border theme-border text-xs theme-text-muted">
+            {t('noSchemesFound')}
           </div>
-        )}
-        <div className="space-y-3">
-          {filtered.map(({ q, a }, i) => (
-            <div key={i} className="bg-[#0f1f3d] border border-white/8 rounded-2xl overflow-hidden">
-              <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/2 transition-colors">
-                <span className="text-white font-medium text-sm pr-4">{q}</span>
-                <svg className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${openFaq === i ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        ) : (
+          filtered.map(({ q, a }, i) => (
+            <div key={i} className="theme-card rounded-lg overflow-hidden border theme-border shadow-xs">
+              <button
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                className="w-full flex items-center justify-between p-4 text-left hover:bg-black/2 dark:hover:bg-white/2 transition-colors"
+                aria-expanded={openFaq === i}
+              >
+                <span className="theme-text-main font-semibold text-xs sm:text-sm pr-4 leading-snug">{q}</span>
+                <span className="text-base text-slate-400 font-bold ml-2 font-mono">{openFaq === i ? '−' : '+'}</span>
               </button>
               {openFaq === i && (
-                <div className="px-5 pb-5 border-t border-white/5">
-                  <p className="text-slate-400 text-sm leading-relaxed pt-4">{a}</p>
+                <div className="px-4 pb-4 pt-1 border-t theme-border bg-slate-50/50 dark:bg-black/20 text-xs theme-text-muted leading-relaxed">
+                  {a}
                 </div>
               )}
             </div>
-          ))}
-        </div>
+          ))
+        )}
       </div>
 
-      {/* Contact support */}
+      {/* Citizen Support Help Strip */}
       <div className="grid sm:grid-cols-3 gap-4">
         {[
-          { icon: '💬', title: 'Chat with AI', desc: 'Ask Sahaya AI any question instantly', action: () => navigate('ai-matcher'), btn: 'Open AI Chat' },
-          { icon: '📞', title: 'Call Helpline', desc: '1800-XXX-XXXX · Mon–Sat, 9 AM – 6 PM', action: () => {}, btn: 'Call Now' },
-          { icon: '📧', title: 'Email Support', desc: 'help@sahaya.gov.in · Reply within 24 hrs', action: () => {}, btn: 'Send Email' },
-        ].map(({ icon, title, desc, action, btn }) => (
-          <div key={title} className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-5 text-center hover:border-white/20 transition-colors">
-            <div className="text-3xl mb-3">{icon}</div>
-            <h3 className="text-white font-semibold text-sm mb-1">{title}</h3>
-            <p className="text-slate-500 text-xs mb-4">{desc}</p>
-            <button onClick={action} className="text-xs bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border border-blue-500/25 px-4 py-2 rounded-xl transition-colors">{btn}</button>
+          { title: t('askAi'), desc: t('portalFooterTag'), action: () => navigate('ai-matcher'), btn: t('askAi') },
+          { title: t('citizenSupport'), desc: '1800-11-2024 · Mon–Sat, 9:00 AM – 6:00 PM', action: () => alert('Helpline: 1800-11-2024 (Toll-Free)'), btn: t('tollFree') },
+          { title: t('feedbackTitle'), desc: 'support@sahaya.gov.in · Official Response', action: () => alert('Support email: support@sahaya.gov.in'), btn: t('feedbackSubmit') },
+        ].map(({ title, desc, action, btn }) => (
+          <div key={title} className="theme-card rounded-lg p-5 border theme-border text-center shadow-sm flex flex-col justify-between hover:border-[#004b87] transition-all">
+            <div>
+              <h3 className="theme-text-main font-bold text-xs sm:text-sm mb-1">{title}</h3>
+              <p className="theme-text-muted text-[11px] mb-3 leading-relaxed">{desc}</p>
+            </div>
+            <button
+              onClick={action}
+              className="gov-btn-primary py-2 text-xs text-center font-bold"
+            >
+              {btn}
+            </button>
           </div>
         ))}
       </div>

@@ -1,112 +1,165 @@
 import { useState } from 'react';
 import type { NavProps, Scheme } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props extends NavProps {
   scheme: Scheme;
 }
 
 const allDocs = [
-  { category: 'Identity & Address', icon: '🪪', docs: [
-    { name: 'Aadhaar Card', required: true, status: 'ready' as const, note: 'Self-attested photocopy + original for verification' },
-    { name: 'PAN Card', required: true, status: 'missing' as const, note: 'Mandatory for loan amounts above ₹50,000' },
-    { name: 'Voter ID / Passport', required: false, status: 'optional' as const, note: 'Any one alternative identity proof' },
+  { category: 'Identity & Address Proofs', docs: [
+    { name: 'Aadhaar Card', required: true, note: 'Self-attested photocopy with original for biometric verification' },
+    { name: 'PAN Card', required: true, note: 'Mandatory for bank loan disbursements exceeding ₹50,000' },
+    { name: 'Voter ID / Passport', required: false, note: 'Secondary proof of residency & citizenship' },
   ]},
-  { category: 'Income & Category', icon: '📊', docs: [
-    { name: 'Income Certificate', required: true, status: 'ready' as const, note: 'Issued by Tahsildar / MRO within 6 months' },
-    { name: 'Caste Certificate (SC/ST/OBC)', required: false, status: 'optional' as const, note: 'Required only for reserved category applicants — enables higher subsidy' },
-    { name: 'BPL Card', required: false, status: 'optional' as const, note: 'If applicable, enables additional benefits' },
+  { category: 'Income & Social Category Certificates', docs: [
+    { name: 'Income Certificate', required: true, note: 'Issued by Tahsildar / Revenue Authority within past 6 months' },
+    { name: 'Caste Certificate (SC/ST/OBC/EWS)', required: false, note: 'Required for special category capital subsidy benefits' },
+    { name: 'BPL / Antyodaya Ration Card', required: false, note: 'Enables additional fee waivers if applicable' },
   ]},
-  { category: 'Business & Project', icon: '📋', docs: [
-    { name: 'Project Report / Business Plan', required: true, status: 'missing' as const, note: 'Detailed report with cost estimates, market analysis, and revenue projections' },
-    { name: 'Experience Certificate', required: false, status: 'optional' as const, note: 'Strengthens your application — not mandatory' },
-    { name: 'Shop / Business Registration', required: false, status: 'optional' as const, note: 'If existing business — Udyam registration preferred' },
+  { category: 'Business & Project Plan', docs: [
+    { name: 'Project Detailed Appraisal Report', required: true, note: 'Outline machinery costs, working capital, and projected revenue' },
+    { name: 'Skill Training / EDP Certificate', required: false, note: 'Strengthens micro-enterprise loan priority' },
+    { name: 'Udyam MSME Registration', required: false, note: 'Recommended for existing units seeking expansion' },
   ]},
-  { category: 'Banking', icon: '🏦', docs: [
-    { name: 'Bank Account (6 months statement)', required: true, status: 'missing' as const, note: 'Savings account in your name with at least 6 months history' },
-    { name: 'Cancelled Cheque', required: true, status: 'ready' as const, note: 'For NEFT/RTGS linking of subsidy' },
+  { category: 'Banking & Financial Credentials', docs: [
+    { name: 'Bank Statement (Past 6 Months)', required: true, note: 'Savings account statement from any scheduled commercial bank' },
+    { name: 'Cancelled Bank Cheque', required: true, note: 'Required for direct electronic subsidy benefit credit' },
   ]},
-  { category: 'Educational', icon: '🎓', docs: [
-    { name: 'Educational Certificate (Class 8+)', required: true, status: 'missing' as const, note: 'Required for projects above ₹10 Lakh' },
-    { name: 'Skill/Vocational Certificate', required: false, status: 'optional' as const, note: 'Demonstrates business expertise — strengthens application' },
-  ]},
-  { category: 'Photos', icon: '📸', docs: [
-    { name: 'Passport-size Photographs', required: true, status: 'ready' as const, note: '3–4 recent colour photographs, white background' },
+  { category: 'Educational & Photographs', docs: [
+    { name: 'Educational Certificate (Class 8+)', required: true, note: 'Mandatory for manufacturing loan projects above ₹10 Lakhs' },
+    { name: 'Recent Passport Photographs (4 Copies)', required: true, note: 'Recent colored photograph with white background' },
   ]},
 ];
 
-export default function RequiredDocuments({ navigate, scheme }: Props) {
-  const [checkedDocs, setCheckedDocs] = useState<Set<string>>(new Set(['Aadhaar Card', 'Income Certificate', 'Cancelled Cheque', 'Passport-size Photographs']));
+export default function RequiredDocuments({
+  navigate,
+  scheme,
+  previousPage,
+  previousLabel,
+  onBack,
+}: Props) {
+  const { t, getLocalizedScheme } = useLanguage();
+  const locScheme = getLocalizedScheme(scheme);
+
+  const [checkedDocs, setCheckedDocs] = useState<Set<string>>(new Set(['Aadhaar Card', 'Income Certificate', 'Cancelled Bank Cheque', 'Recent Passport Photographs (4 Copies)']));
   const toggle = (name: string) => setCheckedDocs(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
 
   const totalRequired = allDocs.flatMap(c => c.docs).filter(d => d.required).length;
   const checkedRequired = allDocs.flatMap(c => c.docs).filter(d => d.required && checkedDocs.has(d.name)).length;
-  const progress = Math.round(checkedRequired / totalRequired * 100);
+  const progress = Math.round((checkedRequired / totalRequired) * 100);
+
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate('scheme-details', scheme.id);
+    }
+  };
+
+  const backLabel =
+    previousPage === 'ai-matcher'
+      ? t('backToAiMatcherResults')
+      : locScheme.name;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      {/* Contextual Back Button */}
+      <div className="mb-3">
+        <button
+          onClick={handleBackClick}
+          className="inline-flex items-center gap-1.5 text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold transition-colors"
+        >
+          <span>←</span>
+          <span>{backLabel}</span>
+        </button>
+      </div>
+
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-slate-500 text-sm mb-6">
-        <button onClick={() => navigate('home')} className="hover:text-white transition-colors">Home</button>
+      <div className="flex items-center gap-2 theme-text-muted text-xs sm:text-sm mb-4 flex-wrap">
+        <button onClick={() => navigate('home')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('home')}</button>
         <span>/</span>
-        <button onClick={() => navigate('scheme-details', scheme.id)} className="hover:text-white transition-colors">Scheme Details</button>
+        {previousPage === 'ai-matcher' ? (
+          <>
+            <button onClick={() => navigate('ai-matcher')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('aiMatcher')}</button>
+            <span>/</span>
+          </>
+        ) : (
+          <>
+            <button onClick={() => navigate('catalog')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('schemes')}</button>
+            <span>/</span>
+          </>
+        )}
+        <button onClick={() => navigate('scheme-details', scheme.id)} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors truncate max-w-xs">{locScheme.name}</button>
         <span>/</span>
-        <span className="text-slate-300">Documents</span>
+        <span className="theme-text-main font-semibold">{t('requiredDocs')}</span>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+      {/* Header */}
+      <div className="theme-card rounded-md p-5 sm:p-6 mb-5 border theme-border shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Required Documents</h1>
-          <p className="text-slate-400 text-sm">Personalized checklist for {scheme.name}</p>
+          <span className="text-[10px] text-[#004b87] dark:text-sky-400 font-bold uppercase tracking-wider mb-0.5 block">{t('docChecklist')}</span>
+          <h1 className="text-xl sm:text-2xl font-bold theme-text-main tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            {t('requiredDocs')} • {locScheme.name}
+          </h1>
+          <p className="theme-text-muted text-xs mt-0.5">
+            {t('docGuidance')}
+          </p>
         </div>
-        <div className="flex-shrink-0 bg-[#0f1f3d] border border-white/8 rounded-2xl px-5 py-3 text-center">
-          <p className="text-3xl font-bold text-white mb-0.5" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{progress}%</p>
-          <p className="text-xs text-slate-500">ready ({checkedRequired}/{totalRequired})</p>
+
+        {/* Progress gauge */}
+        <div className="text-center theme-card-subtle border theme-border rounded px-4 py-2 flex-shrink-0 min-w-32">
+          <span className="text-2xl font-extrabold text-[#004b87] dark:text-sky-300 font-mono">{progress}%</span>
+          <p className="text-[9px] theme-text-muted font-bold uppercase mt-0.5">{checkedRequired}/{totalRequired} {t('docsReady')}</p>
         </div>
       </div>
 
-      {/* Progress */}
-      <div className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-4 mb-6">
-        <div className="flex justify-between text-xs text-slate-500 mb-2">
-          <span>Document readiness</span>
-          <span>{checkedRequired} of {totalRequired} mandatory documents ready</span>
-        </div>
-        <div className="h-2 bg-white/8 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
-        </div>
-        {progress < 100 && <p className="text-xs text-amber-400 mt-2">⚠ Collect {totalRequired - checkedRequired} more mandatory documents before applying.</p>}
-        {progress === 100 && <p className="text-xs text-emerald-400 mt-2">✓ All mandatory documents ready! You can proceed to apply.</p>}
-      </div>
+      {/* Document Sections */}
+      <div className="space-y-4">
+        {allDocs.map((cat, ci) => (
+          <div key={ci} className="theme-card rounded-md p-4 sm:p-5 border theme-border shadow-xs">
+            <h2 className="text-xs font-bold uppercase tracking-wider theme-text-main mb-3 flex items-center gap-1.5" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+              <span>📁</span>
+              <span>{cat.category}</span>
+            </h2>
 
-      {/* Legend */}
-      <div className="flex gap-4 mb-6 flex-wrap">
-        {[['text-red-400', '● Mandatory'], ['text-amber-400', '○ Optional'], ['text-emerald-400', '✓ Ready']].map(([color, label]) => (
-          <span key={label} className={`text-xs ${color} flex items-center gap-1`}>{label}</span>
-        ))}
-      </div>
-
-      {/* Document categories */}
-      <div className="space-y-5">
-        {allDocs.map(({ category, icon, docs }) => (
-          <div key={category} className="bg-[#0f1f3d] border border-white/8 rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/5 bg-white/2">
-              <span className="text-xl">{icon}</span>
-              <h2 className="text-white font-semibold text-sm">{category}</h2>
-              <span className="ml-auto text-xs text-slate-500">{docs.filter(d => d.required).length} required</span>
-            </div>
-            <div className="p-4 space-y-3">
-              {docs.map(({ name, required, status, note }) => {
-                const isChecked = checkedDocs.has(name);
+            <div className="space-y-2">
+              {cat.docs.map((doc, di) => {
+                const isChecked = checkedDocs.has(doc.name);
                 return (
-                  <div key={name} className={`flex gap-3 p-3 rounded-xl cursor-pointer transition-colors ${isChecked ? 'bg-emerald-400/5 border border-emerald-500/15' : 'hover:bg-white/3 border border-transparent'}`} onClick={() => toggle(name)}>
-                    <div className={`w-5 h-5 rounded border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${isChecked ? 'bg-emerald-500 border-emerald-500' : 'border-white/20'}`}>
-                      {isChecked && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                  <div
+                    key={di}
+                    onClick={() => toggle(doc.name)}
+                    className={`flex items-start gap-3 rounded p-3 transition-colors cursor-pointer border ${
+                      isChecked
+                        ? 'theme-card-subtle border-emerald-500/30'
+                        : 'theme-card-subtle border theme-border'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center flex-shrink-0 text-[10px] font-bold border transition-colors ${
+                      isChecked
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'border-slate-300 dark:border-white/20 theme-card'
+                    }`}>
+                      {isChecked && '✓'}
                     </div>
+
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className={`text-sm font-medium ${isChecked ? 'text-white line-through text-slate-400' : 'text-white'}`}>{name}</p>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${required ? 'text-red-400 bg-red-400/10' : 'text-slate-500 bg-white/5'}`}>{required ? 'Required' : 'Optional'}</span>
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className={`text-xs font-semibold ${isChecked ? 'line-through opacity-70 theme-text-muted' : 'theme-text-main'}`}>
+                          {doc.name}
+                        </span>
+                        {doc.required ? (
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20">
+                            {t('mandatory')}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-medium px-1.5 py-0.2 rounded theme-card-subtle theme-text-muted border theme-border">
+                            {t('optional')}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">{note}</p>
+                      <p className="theme-text-muted text-xs leading-relaxed">{doc.note}</p>
                     </div>
                   </div>
                 );
@@ -114,12 +167,22 @@ export default function RequiredDocuments({ navigate, scheme }: Props) {
             </div>
           </div>
         ))}
-      </div>
 
-      {/* Actions */}
-      <div className="mt-8 flex flex-wrap gap-3">
-        <button className="text-sm border border-white/15 hover:border-white/30 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl transition-colors">Download Checklist PDF</button>
-        <button onClick={() => navigate('partners')} className="flex-1 text-sm bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-semibold transition-colors">Find Nearest Partner →</button>
+        {/* Action Controls */}
+        <div className="flex flex-wrap gap-2 pt-2">
+          <button
+            onClick={() => navigate('guidance', scheme.id)}
+            className="flex-1 py-2.5 gov-btn-primary text-xs text-center font-bold"
+          >
+            {t('applicationGuidance')} →
+          </button>
+          <button
+            onClick={() => navigate('partners', scheme.id)}
+            className="flex-1 py-2.5 gov-btn-secondary text-xs text-center"
+          >
+            {t('channelPartners')} →
+          </button>
+        </div>
       </div>
     </div>
   );

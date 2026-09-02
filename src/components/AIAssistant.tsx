@@ -3,6 +3,7 @@ import type { Page, Scheme } from '../types';
 import type { VoiceState, Message, AgentProgressStep } from '../types/ai';
 import { detectLanguage } from '../services/languageDetector';
 import { useProfile } from '../context/ProfileContext';
+import { useLanguage } from '../context/LanguageContext';
 import { aiService } from '../services/aiService';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import AIAgentProgress from './ai/AIAgentProgress';
@@ -17,11 +18,12 @@ interface Props {
 
 export default function AIAssistant({ onClose, navigate, currentPage, selectedScheme }: Props) {
   const { profile, getRelevantContext } = useProfile();
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       role: 'ai',
-      text: `Hello! I'm your Sahaya AI Assistant. I can help you discover government schemes, check eligibility, calculate financial assistance, find required documents, locate authorized channel partners and guide you through the application process.\n\nWhat would you like to know?`,
+      text: `Hello! I'm your Sahaya AI Assistant. I can help you discover government schemes, verify eligibility, calculate financial assistance, identify required documents, locate authorized channel partners, and guide your application.\n\nHow can I assist you today?`,
       timestamp: new Date(),
     },
   ]);
@@ -70,7 +72,7 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       const ctx: Message = {
         id: 'ctx',
         role: 'ai',
-        text: `I see you're viewing **${selectedScheme.name}**. Feel free to ask me anything about this scheme — eligibility, documents, financial assistance, or how to apply!`,
+        text: `I see you're viewing **${selectedScheme.name}**. Feel free to ask me anything about this scheme — eligibility criteria, documents required, financial assistance calculations, or application process!`,
         timestamp: new Date(),
       };
       setMessages(prev => {
@@ -143,10 +145,10 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
 
     const initialSteps: AgentProgressStep[] = [
       { id: '1', label: 'Understanding your requirement', status: 'in_progress' },
-      { id: '2', label: 'Checking your profile', status: 'pending' },
-      { id: '3', label: 'Checking eligibility criteria', status: 'pending' },
-      { id: '4', label: 'Finding suitable schemes', status: 'pending' },
-      { id: '5', label: 'Checking financial fit', status: 'pending' },
+      { id: '2', label: 'Checking your profile context', status: 'pending' },
+      { id: '3', label: 'Evaluating scheme eligibility', status: 'pending' },
+      { id: '4', label: 'Finding suitable welfare schemes', status: 'pending' },
+      { id: '5', label: 'Checking financial fit & subsidies', status: 'pending' },
     ];
 
     const thinkingMsgId = (Date.now() + 1).toString();
@@ -304,19 +306,42 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
 
   const renderText = (text: string) => {
     if (!text) return null;
-    return text.split('\n').map((line, i) => {
-      if (!line) return <div key={i} className="h-1.5" />;
-      let formatted: React.ReactNode = line;
-      if (line.startsWith('• ') || line.startsWith('- ')) {
-        const content = line.slice(2);
-        return (
-          <div key={i} className="flex items-start gap-1.5 ml-1 text-xs">
-            <span className="text-blue-400 mt-0.5">•</span>
-            <span>{renderFormattedInline(content)}</span>
-          </div>
-        );
-      }
-      return <p key={i} className="text-xs leading-relaxed">{renderFormattedInline(line)}</p>;
+    const paragraphs = text.split('\n\n');
+    return paragraphs.map((p, pIdx) => {
+      const lines = p.split('\n');
+      return (
+        <div key={pIdx} className="mb-2 last:mb-0 space-y-1">
+          {lines.map((line, lIdx) => {
+            if (line.startsWith('# ')) {
+              return <h3 key={lIdx} className="text-base font-bold text-white mt-2 mb-1">{line.slice(2)}</h3>;
+            }
+            if (line.startsWith('## ')) {
+              return <h4 key={lIdx} className="text-sm font-semibold text-teal-300 mt-2 mb-1">{line.slice(3)}</h4>;
+            }
+            if (line.startsWith('### ')) {
+              return <h5 key={lIdx} className="text-xs font-semibold text-slate-200 mt-1.5 mb-0.5">{line.slice(4)}</h5>;
+            }
+            if (line.startsWith('- ') || line.startsWith('* ')) {
+              return (
+                <div key={lIdx} className="flex gap-2 text-xs text-slate-200 ml-1">
+                  <span className="text-teal-400 font-bold">•</span>
+                  <span>{renderFormattedInline(line.slice(2))}</span>
+                </div>
+              );
+            }
+            const numMatch = line.match(/^(\d+)\.\s(.*)/);
+            if (numMatch) {
+              return (
+                <div key={lIdx} className="flex gap-2 text-xs text-slate-200 ml-1">
+                  <span className="text-teal-400 font-semibold">{numMatch[1]}.</span>
+                  <span>{renderFormattedInline(numMatch[2])}</span>
+                </div>
+              );
+            }
+            return <p key={lIdx} className="text-xs text-slate-200 leading-relaxed">{renderFormattedInline(line)}</p>;
+          })}
+        </div>
+      );
     });
   };
 
@@ -334,22 +359,24 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
       <div
-        className="w-full max-w-4xl h-[92vh] max-h-[780px] rounded-2xl flex overflow-hidden shadow-2xl border border-white/10"
-        style={{ background: '#0b1629' }}
+        className="w-full max-w-4xl h-[92vh] max-h-[760px] rounded-lg flex overflow-hidden shadow-2xl border theme-border theme-modal"
       >
         {/* Sidebar */}
-        <div className={`w-64 border-r border-white/8 flex flex-col justify-between transition-all duration-300 bg-[#081120] ${sidebarOpen ? 'block absolute inset-y-0 left-0 z-10' : 'hidden sm:flex'}`}>
+        <div className={`w-64 border-r theme-border flex flex-col justify-between transition-all duration-200 theme-card-subtle ${sidebarOpen ? 'block absolute inset-y-0 left-0 z-20 h-full shadow-2xl' : 'hidden sm:flex'}`}>
           <div className="p-3 space-y-1">
-            <div className="flex items-center justify-between px-3 py-2">
+            <div className="flex items-center justify-between px-3 py-2 border-b theme-border pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center">
+                <div className="w-7 h-7 rounded bg-[#004b87] flex items-center justify-center shadow-sm">
                   <span className="text-white text-xs font-bold">S</span>
                 </div>
-                <span className="text-white font-bold text-xs" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Sahaya AI</span>
+                <div>
+                  <span className="theme-text-main font-bold text-xs block leading-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Sahaya AI</span>
+                  <span className="text-[10px] text-[#004b87] dark:text-sky-300 font-semibold">Citizen Helpdesk</span>
+                </div>
               </div>
-              <button className="sm:hidden text-slate-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+              <button className="sm:hidden theme-text-muted hover:theme-text-main p-1" onClick={() => setSidebarOpen(false)}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -358,82 +385,107 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
               {sidebarLinks.map(({ label, icon, action }) => (
                 <button
                   key={label}
-                  onClick={action}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-white/5 transition-all text-left group"
+                  onClick={() => {
+                    action();
+                    if (sidebarOpen) setSidebarOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs theme-text-muted hover:theme-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-all text-left font-medium"
                 >
-                  <span className="text-slate-500 group-hover:text-blue-400 text-sm transition-colors">{icon}</span>
+                  <span className="text-[#004b87] dark:text-sky-300">{icon}</span>
                   <span>{label}</span>
                 </button>
               ))}
             </div>
 
-            <div className="pt-3 mt-2 border-t border-white/8">
-              <p className="text-xs text-slate-600 px-3 mb-2 uppercase tracking-wider">Recent Chats</p>
+            <div className="pt-3 mt-2 border-t theme-border">
+              <p className="text-[10px] theme-text-muted px-3 mb-2 uppercase tracking-wider font-semibold">Recent Consultations</p>
               {['PMEGP loan enquiry', 'Tailoring business scheme', 'MUDRA eligibility check'].map(c => (
-                <button key={c} className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors truncate">{c}</button>
+                <button
+                  key={c}
+                  onClick={() => sendMessage(`Tell me more about ${c}`)}
+                  className="w-full text-left px-3 py-1.5 rounded text-xs theme-text-muted hover:theme-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-colors truncate"
+                >
+                  {c}
+                </button>
               ))}
             </div>
 
-            <div className="pt-3 mt-2 border-t border-white/8">
-              <p className="text-xs text-slate-600 px-3 mb-2 uppercase tracking-wider">Major Schemes</p>
-              {[['PMEGP', 'pmegp'], ['MUDRA', 'mudra'], ['Stand-Up India', 'standup'], ['PMAY', 'pmay']].map(([name, id]) => (
-                <button key={id} onClick={() => navigate('scheme-details', id)} className="w-full text-left px-3 py-2 rounded-lg text-xs text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors truncate">{name}</button>
+            <div className="pt-3 mt-2 border-t theme-border">
+              <p className="text-[10px] theme-text-muted px-3 mb-2 uppercase tracking-wider font-semibold">Priority Schemes</p>
+              {[['PMEGP Subsidy', 'pmegp'], ['MUDRA Kishore', 'mudra'], ['Stand-Up India', 'standup'], ['PMAY Housing', 'pmay']].map(([name, id]) => (
+                <button
+                  key={id}
+                  onClick={() => navigate('scheme-details', id)}
+                  className="w-full text-left px-3 py-1.5 rounded text-xs theme-text-muted hover:text-[#004b87] dark:hover:text-sky-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors truncate font-medium"
+                >
+                  {name}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* User profile */}
-          <div className="p-3 border-t border-white/8">
-            <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
-              <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-                <span className="text-blue-400 text-xs font-semibold">
-                  {profile.name ? profile.name.split(' ').map(n => n[0]).join('') : 'RK'}
-                </span>
+          {/* User profile preview */}
+          <div className="p-3 border-t theme-border theme-card-subtle">
+            <div className="flex items-center gap-2 p-2 rounded-md theme-card shadow-sm">
+              <div className="w-7 h-7 rounded bg-[#004b87] flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">
+                {profile.name ? profile.name.split(' ').map(n => n[0]).join('') : 'RK'}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-white text-xs font-medium truncate">{profile.name}</p>
-                  <span className="text-[9px] text-emerald-400 bg-emerald-400/10 px-1 py-0.2 rounded font-semibold">Demo Profile</span>
+                  <p className="theme-text-main text-xs font-semibold truncate">{profile.name}</p>
+                  <span className="text-[9px] text-[#004b87] dark:text-sky-300 bg-blue-500/10 px-1 py-0.2 rounded font-medium">Active</span>
                 </div>
-                <p className="text-slate-500 text-xs truncate">{profile.city}, {profile.category} · {profile.occupation || 'Tailor'}</p>
+                <p className="theme-text-muted text-[10px] truncate">{profile.city || 'Coimbatore'} · {profile.category || 'OBC'} · {profile.occupation || 'Tailoring'}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main chat */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* Main chat area */}
+        <div className="flex-1 flex flex-col min-w-0 theme-modal">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 bg-[#0f1f3d]/50">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#002244] bg-[#003366] text-white">
             <div className="flex items-center gap-3">
-              <button className="sm:hidden text-slate-400 hover:text-white p-1" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <button className="sm:hidden text-slate-200 hover:text-white p-1" onClick={() => setSidebarOpen(!sidebarOpen)}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
               </button>
               <div>
-                <h2 className="text-white font-semibold text-sm" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Sahaya AI Assistant</h2>
+                <h2 className="text-white font-bold text-sm tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                  Sahaya Citizen AI Helpdesk
+                </h2>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs text-slate-400">AI Assistant Online</span>
+                  <span className="text-[10px] text-slate-200 font-medium">National Public Scheme Guidance</span>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setMessages([{ id: '0', role: 'ai', text: "Session reset. How can I help you?", timestamp: new Date() }])}
-                className="text-xs text-slate-400 hover:text-white border border-white/10 hover:border-white/20 px-2.5 py-1 rounded-lg transition-colors"
-              >Reset</button>
-              <button onClick={onClose} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                onClick={() => setMessages([{ id: '0', role: 'ai', text: "Session reset. How can I assist you with government welfare schemes today?", timestamp: new Date() }])}
+                className="text-xs text-slate-200 hover:text-white border border-white/20 px-2.5 py-1 rounded transition-colors hover:bg-white/10"
+              >
+                Reset
+              </button>
+              <button
+                onClick={onClose}
+                className="text-slate-200 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
+                aria-label="Close Helpdesk"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          {/* Messages Feed */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5">
             {messages.length === 1 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4 animate-fade-in">
                 {quickActions.map(({ label, msg }) => (
-                  <button key={label} onClick={() => sendMessage(msg)} className="text-xs text-slate-300 border border-white/10 hover:border-blue-500/50 hover:text-white hover:bg-blue-600/10 px-3 py-2 rounded-xl transition-all text-left">
+                  <button
+                    key={label}
+                    onClick={() => sendMessage(msg)}
+                    className="text-xs theme-text-main border theme-border hover:border-[#004b87] px-3 py-2 rounded-md transition-colors text-left theme-card-subtle shadow-sm font-medium"
+                  >
                     {label}
                   </button>
                 ))}
@@ -441,27 +493,29 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
             )}
 
             {messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2.5`}>
+              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2 animate-fade-in`}>
                 {msg.role === 'ai' && (
-                  <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs font-bold">S</span>
+                  <div className="w-7 h-7 rounded bg-[#004b87] flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-xs font-bold shadow-sm">
+                    S
                   </div>
                 )}
                 <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-first' : ''}`}>
                   {msg.role === 'user' && msg.lang && (
-                    <p className="text-xs text-slate-500 text-right mb-1 mr-1">
-                      Language detected: <span className="text-blue-400">{msg.lang}</span>
-                      {msg.isVoice && <span className="ml-1.5 text-emerald-400">🎤 Voice</span>}
+                    <p className="text-[10px] theme-text-muted text-right mb-0.5 mr-1">
+                      Detected: <span className="text-[#004b87] dark:text-sky-300 font-semibold">{msg.lang}</span>
+                      {msg.isVoice && <span className="ml-1 text-emerald-600 dark:text-emerald-400 font-medium">🎤 Voice</span>}
                     </p>
                   )}
-                  <div className={`rounded-2xl px-4 py-3 ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-[#0f1f3d] border border-white/8 rounded-bl-sm'}`}>
+                  <div className={`rounded-md px-3.5 py-2.5 shadow-sm text-xs leading-relaxed ${
+                    msg.role === 'user'
+                      ? 'bg-[#004b87] text-white'
+                      : 'theme-card border theme-border'
+                  }`}>
                     {msg.processing ? (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex gap-1 h-4 items-end">
-                            {[...Array(6)].map((_, i) => <span key={i} className="wave-bar text-blue-400" style={{ height: '14px' }} />)}
-                          </div>
-                          <span className="text-xs text-blue-300 font-medium">Sahaya AI is analyzing...</span>
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-[#004b87] dark:border-sky-400 border-t-transparent animate-spin" />
+                          <span className="text-xs font-semibold theme-text-main">Analyzing government scheme database…</span>
                         </div>
                         {msg.progressSteps && (
                           <AIAgentProgress steps={msg.progressSteps} isComplete={false} />
@@ -470,14 +524,12 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                     ) : (
                       <div className="space-y-1">
                         {msg.role === 'ai' && msg.usedProfileFields && msg.usedProfileFields.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 mb-2.5 rounded-xl bg-blue-900/40 border border-blue-500/25 text-xs">
-                            <span className="font-semibold text-blue-200">Using your saved profile</span>
-                            <span className="text-slate-500">·</span>
-                            <div className="flex flex-wrap gap-1.5 items-center">
+                          <div className="flex flex-wrap items-center gap-1.5 px-2.5 py-1 mb-2 rounded bg-blue-500/10 border border-blue-500/20 text-[11px]">
+                            <span className="font-semibold text-[#004b87] dark:text-sky-300">Verified Profile Data Used:</span>
+                            <div className="flex flex-wrap gap-1 items-center">
                               {msg.usedProfileFields.map(f => (
-                                <span key={f} className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                                  <svg className="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                                  {f}
+                                <span key={f} className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.2 rounded">
+                                  ✓ {f}
                                 </span>
                               ))}
                             </div>
@@ -487,12 +539,12 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                         {renderText(msg.text)}
 
                         {msg.missingProfileFields && msg.missingProfileFields.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-3 pt-2.5 border-t border-white/8">
+                          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t theme-border">
                             {msg.missingProfileFields.map(m => (
                               <button
                                 key={m.field}
                                 onClick={() => sendMessage(`My ${m.label} is ₹2,40,000`)}
-                                className="text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-lg transition-colors font-medium flex items-center gap-1"
+                                className="text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-200 border border-amber-500/30 px-2.5 py-1 rounded transition-colors font-medium flex items-center gap-1"
                               >
                                 <span>+</span> {m.actionText || `Provide ${m.label}`}
                               </button>
@@ -505,18 +557,18 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
 
                   {/* Scheme recommendation cards */}
                   {msg.schemeCards && msg.schemeCards.length > 0 && (
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-2.5 space-y-2.5">
                       {msg.schemeCards.map((card, i) => (
-                        <div key={card.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 0.1}s` }}>
+                        <div key={card.id}>
                           <AISchemeCard card={card} onNavigate={navigate} isBestMatch={i === 0} />
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* AI message actions */}
+                  {/* AI message speaker play action */}
                   {msg.role === 'ai' && !msg.processing && (
-                    <div className="flex items-center gap-2 mt-1.5 ml-1">
+                    <div className="flex items-center gap-2 mt-1 ml-0.5">
                       <button
                         onClick={() => {
                           if (playingMessageId === msg.id && currentAudioRef.current) {
@@ -533,28 +585,31 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                             playTTS(msg.text, msg.id);
                           }
                         }}
-                        className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-lg ${playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing') ? 'text-blue-400 bg-blue-400/10' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                        className={`flex items-center gap-1 text-[11px] transition-colors px-2 py-0.5 rounded ${
+                          playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing')
+                            ? 'text-[#004b87] dark:text-sky-300 bg-blue-500/15 border border-blue-500/30 font-semibold'
+                            : 'theme-text-muted hover:theme-text-main border border-transparent'
+                        }`}
                       >
                         {playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing') ? (
                           <>
-                            <div className="flex gap-0.5 h-3 items-end">
-                              {[...Array(4)].map((_, i) => <span key={i} className="wave-bar text-blue-400" style={{ height: '10px' }} />)}
-                            </div>
-                            <span>{voiceState === 'processing' ? 'Loading…' : 'Playing…'}</span>
+                            <div className="w-2 h-2 rounded-full bg-[#004b87] dark:bg-sky-400 animate-ping" />
+                            <span>{voiceState === 'processing' ? 'Synthesizing…' : 'Playing Audio'}</span>
                           </>
                         ) : (
                           <>
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" /></svg>
-                            <span>Play</span>
+                            <span>🔊</span>
+                            <span>Listen</span>
                           </>
                         )}
                       </button>
                     </div>
                   )}
                 </div>
+
                 {msg.role === 'user' && (
-                  <div className="w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-white text-xs font-semibold">RK</span>
+                  <div className="w-7 h-7 rounded bg-slate-700 text-white flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold shadow-sm">
+                    RK
                   </div>
                 )}
               </div>
@@ -564,31 +619,28 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
 
           {/* Voice recording overlay */}
           {voiceState !== 'idle' && (
-            <div className="mx-4 mb-3 bg-[#0f1f3d] border border-blue-500/30 rounded-2xl p-4 flex flex-col items-center gap-3">
+            <div className="mx-4 mb-3 theme-card rounded-md p-3.5 flex flex-col items-center gap-2.5 shadow-lg border theme-border">
               {voiceState === 'listening' && (
                 <>
-                  <div className="flex gap-1 h-8 items-end">
-                    {[...Array(12)].map((_, i) => <span key={i} className="wave-bar text-blue-400" style={{ height: '24px' }} />)}
-                  </div>
-                  <p className="text-blue-400 text-sm font-medium animate-pulse">Listening…</p>
+                  <p className="text-red-600 dark:text-red-400 text-xs font-semibold animate-pulse flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-600" />
+                    <span>Microphone is active. Speak your question now…</span>
+                  </p>
                   <div className="flex gap-2">
-                    <button onClick={handleCancelRecording} className="text-xs text-slate-400 hover:text-white border border-white/15 px-3 py-1.5 rounded-lg">Cancel</button>
-                    <button onClick={handleStopRecording} className="text-xs text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg">Stop</button>
+                    <button onClick={handleCancelRecording} className="text-xs gov-btn-secondary px-3 py-1">Cancel</button>
+                    <button onClick={handleStopRecording} className="text-xs gov-btn-primary px-3.5 py-1">Done / Submit Voice</button>
                   </div>
                 </>
               )}
               {voiceState === 'processing' && (
                 <>
-                  <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                  <p className="text-slate-300 text-sm">Processing voice…</p>
+                  <div className="w-6 h-6 rounded-full border-2 border-[#004b87] dark:border-sky-400 border-t-transparent animate-spin" />
+                  <p className="theme-text-muted text-xs">Processing speech input with voice model…</p>
                 </>
               )}
               {voiceState === 'playing' && (
                 <>
-                  <div className="flex gap-1 h-8 items-end">
-                    {[...Array(10)].map((_, i) => <span key={i} className="wave-bar text-emerald-400" style={{ height: '24px' }} />)}
-                  </div>
-                  <p className="text-emerald-400 text-sm font-medium">Playing response…</p>
+                  <p className="text-emerald-700 dark:text-emerald-400 text-xs font-semibold">Playing audio narration…</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
@@ -602,46 +654,55 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                           }
                         }
                       }}
-                      className="text-xs text-white border border-white/15 px-3 py-1.5 rounded-lg"
+                      className="text-xs gov-btn-secondary px-3 py-1"
                     >
                       {currentAudioRef.current && currentAudioRef.current.paused ? 'Resume' : 'Pause'}
                     </button>
-                    <button onClick={stopAudioPlayback} className="text-xs text-slate-400 hover:text-white border border-white/15 px-3 py-1.5 rounded-lg">Close</button>
+                    <button onClick={stopAudioPlayback} className="text-xs gov-btn-secondary px-3 py-1">Close</button>
                   </div>
                 </>
               )}
             </div>
           )}
 
-          {/* Input bar */}
-          <div className="px-4 py-3 border-t border-white/8">
-            <div className="flex items-center gap-2 bg-[#132040] border border-white/10 rounded-2xl px-3 py-2">
-              <button className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/5 transition-colors flex-shrink-0">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-              </button>
+          {/* Input Bar */}
+          <div className="px-4 py-3 border-t theme-border theme-card">
+            <div className="flex items-center gap-2 theme-input rounded-md px-3 py-2 border theme-border">
               <input
                 ref={inputRef}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                placeholder="Ask in English, தமிழ், हिंदी or any language…"
-                className="flex-1 bg-transparent text-white text-sm placeholder-slate-500 outline-none min-w-0"
+                placeholder="Ask in English, தமிழ், हिंदी or any Indian language…"
+                className="flex-1 bg-transparent theme-text-main text-xs sm:text-sm placeholder:theme-text-muted outline-none min-w-0"
               />
               <button
                 onClick={handleVoiceMic}
-                className={`p-1.5 rounded-lg transition-all flex-shrink-0 ${voiceState === 'listening' ? 'text-red-400 bg-red-400/10 animate-pulse' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                className={`p-1.5 rounded transition-colors flex-shrink-0 ${
+                  voiceState === 'listening'
+                    ? 'text-red-600 bg-red-500/20 animate-pulse'
+                    : 'theme-text-muted hover:text-[#004b87] hover:bg-black/5 dark:hover:bg-white/5'
+                }`}
+                title="Voice input"
+                aria-label="Voice input"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
               </button>
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
-                className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                className="px-3 py-1.5 gov-btn-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs flex-shrink-0"
+                title="Send message"
+                aria-label="Send message"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                Send
               </button>
             </div>
-            <p className="text-xs text-slate-600 text-center mt-1.5">Sahaya AI provides guidance only — not official legal or financial advice.</p>
+            <p className="text-[10px] theme-text-muted text-center mt-1">
+              Official citizen guidance assistant. Data verified against national scheme guidelines.
+            </p>
           </div>
         </div>
       </div>

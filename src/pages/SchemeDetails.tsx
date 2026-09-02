@@ -1,190 +1,288 @@
 import { useState } from 'react';
 import type { NavProps, Scheme } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props extends NavProps {
   scheme: Scheme;
 }
 
-const tabs = ['Overview', 'Eligibility', 'Benefits', 'Documents', 'Process', 'Partners'];
-
-export default function SchemeDetails({ navigate, scheme }: Props) {
+export default function SchemeDetails({
+  navigate,
+  scheme,
+  previousPage,
+  previousLabel,
+  onBack,
+}: Props) {
   const [tab, setTab] = useState('Overview');
+  const { t, getLocalizedScheme } = useLanguage();
+
+  const locScheme = getLocalizedScheme(scheme);
+  const tabKeys: { id: string; labelKey: string }[] = [
+    { id: 'Overview', labelKey: 'overview' },
+    { id: 'Eligibility', labelKey: 'eligibility' },
+    { id: 'Benefits', labelKey: 'benefits' },
+    { id: 'Documents', labelKey: 'documents' },
+    { id: 'Process', labelKey: 'process' },
+    { id: 'Partners', labelKey: 'partners' },
+  ];
+
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
+    } else if (previousPage === 'ai-matcher') {
+      navigate('ai-matcher');
+    } else {
+      navigate('catalog');
+    }
+  };
+
+  const backLabel =
+    previousPage === 'ai-matcher'
+      ? t('backToAiMatcherResults')
+      : previousLabel
+      ? previousLabel
+      : t('backToSchemesDirectory');
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      {/* Contextual Back Button */}
+      <div className="mb-3">
+        <button
+          onClick={handleBackClick}
+          className="inline-flex items-center gap-1.5 text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold transition-colors"
+        >
+          <span>←</span>
+          <span>{backLabel}</span>
+        </button>
+      </div>
+
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-slate-500 text-sm mb-6">
-        <button onClick={() => navigate('home')} className="hover:text-white transition-colors">Home</button>
+      <div className="flex items-center gap-2 theme-text-muted text-xs sm:text-sm mb-4 flex-wrap">
+        <button onClick={() => navigate('home')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('home')}</button>
         <span>/</span>
-        <button onClick={() => navigate('catalog')} className="hover:text-white transition-colors">Schemes</button>
-        <span>/</span>
-        <span className="text-slate-300 truncate">{scheme.name}</span>
+        {previousPage === 'ai-matcher' ? (
+          <>
+            <button onClick={() => navigate('ai-matcher')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('aiMatcher')}</button>
+            <span>/</span>
+          </>
+        ) : (
+          <>
+            <button onClick={() => navigate('catalog')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('schemes')}</button>
+            <span>/</span>
+          </>
+        )}
+        <span className="theme-text-main font-semibold truncate max-w-xs">{locScheme.name}</span>
       </div>
 
-      {/* Header card */}
-      <div className="bg-[#0f1f3d] border border-white/10 rounded-3xl p-6 sm:p-8 mb-6">
-        <div className="flex flex-wrap gap-2 mb-4">
-          {scheme.badge && <span className="text-xs font-semibold text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full">{scheme.badge}</span>}
-          <span className="text-xs text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full">{scheme.type}</span>
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{scheme.name}</h1>
-        <p className="text-slate-400 mb-6">{scheme.organization}</p>
-
-        <div className="grid sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-amber-400/5 border border-amber-400/15 rounded-2xl p-4">
-            <p className="text-xs text-slate-500 mb-1">Financial Assistance</p>
-            <p className="text-sm text-amber-400 font-semibold leading-snug">{scheme.financialAssistance}</p>
-          </div>
-          <div className="bg-blue-600/5 border border-blue-500/15 rounded-2xl p-4">
-            <p className="text-xs text-slate-500 mb-1">Eligible Categories</p>
-            <p className="text-sm text-blue-400 font-semibold">{scheme.categories.slice(0, 3).join(', ')}{scheme.categories.length > 3 ? '…' : ''}</p>
-          </div>
-          <div className="bg-emerald-600/5 border border-emerald-500/15 rounded-2xl p-4">
-            <p className="text-xs text-slate-500 mb-1">Age Range</p>
-            <p className="text-sm text-emerald-400 font-semibold">{scheme.minAge} – {scheme.maxAge} years</p>
-          </div>
+      {/* Header Dossier */}
+      <div className="theme-card rounded-md p-6 mb-6 shadow-sm border theme-border">
+        <div className="flex flex-wrap gap-2 mb-2.5">
+          {locScheme.badge && (
+            <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-400/20 px-2.5 py-0.5 rounded uppercase tracking-wider">
+              {locScheme.badge}
+            </span>
+          )}
+          <span className="text-[10px] text-[#004b87] dark:text-sky-300 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded font-semibold">
+            {locScheme.type}
+          </span>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex flex-wrap gap-2.5">
-          <button onClick={() => navigate('eligibility', scheme.id)} className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Check Eligibility
+        <h1 className="text-2xl sm:text-3xl font-bold theme-text-main mb-1 tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+          {locScheme.name}
+        </h1>
+        <p className="theme-text-muted text-xs sm:text-sm mb-5 font-medium">{locScheme.organization}</p>
+
+        {/* Highlights Grid */}
+        <div className="grid sm:grid-cols-3 gap-3 mb-5">
+          <div className="theme-card-subtle border theme-border rounded p-3">
+            <p className="text-[10px] theme-text-muted uppercase tracking-wider font-semibold mb-0.5">{t('financialAssistance')}</p>
+            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 font-bold leading-snug">{locScheme.financialAssistance}</p>
+          </div>
+          <div className="theme-card-subtle border theme-border rounded p-3">
+            <p className="text-[10px] theme-text-muted uppercase tracking-wider font-semibold mb-0.5">{t('targetGroups')}</p>
+            <p className="text-xs sm:text-sm text-[#004b87] dark:text-sky-300 font-semibold">{locScheme.categories.slice(0, 3).join(', ')}{locScheme.categories.length > 3 ? '…' : ''}</p>
+          </div>
+          <div className="theme-card-subtle border theme-border rounded p-3">
+            <p className="text-[10px] theme-text-muted uppercase tracking-wider font-semibold mb-0.5">{t('ageLimit')}</p>
+            <p className="text-xs sm:text-sm text-emerald-700 dark:text-emerald-400 font-semibold">{locScheme.minAge} – {locScheme.maxAge} {t('years')}</p>
+          </div>
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex flex-wrap gap-2 pt-2 border-t theme-border">
+          <button
+            onClick={() => navigate('eligibility', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+            className="px-4 py-2 gov-btn-primary text-xs flex items-center gap-1.5"
+          >
+            <span>{t('checkEligibility')}</span>
           </button>
-          <button onClick={() => navigate('calculator', scheme.id)} className="flex items-center gap-2 px-4 py-2.5 border border-white/20 hover:border-white/40 text-white text-sm font-medium rounded-xl transition-colors hover:bg-white/5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-            Calculate
+          <button
+            onClick={() => navigate('calculator', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+            className="px-4 py-2 gov-btn-secondary text-xs flex items-center gap-1.5"
+          >
+            <span>{t('calculateSubsidy')}</span>
           </button>
-          <button onClick={() => navigate('documents', scheme.id)} className="flex items-center gap-2 px-4 py-2.5 border border-white/20 hover:border-white/40 text-white text-sm font-medium rounded-xl transition-colors hover:bg-white/5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            Documents
+          <button
+            onClick={() => navigate('documents', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+            className="px-4 py-2 gov-btn-secondary text-xs flex items-center gap-1.5"
+          >
+            <span>{t('requiredDocs')}</span>
           </button>
-          <button onClick={() => navigate('partners')} className="flex items-center gap-2 px-4 py-2.5 border border-white/20 hover:border-white/40 text-white text-sm font-medium rounded-xl transition-colors hover:bg-white/5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            Find Partner
+          <button
+            onClick={() => navigate('partners', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+            className="px-4 py-2 gov-btn-secondary text-xs flex items-center gap-1.5"
+          >
+            <span>{t('channelPartners')}</span>
+          </button>
+          <button
+            onClick={() => navigate('guidance', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+            className="px-4 py-2 gov-btn-secondary text-xs flex items-center gap-1.5"
+          >
+            <span>{t('applicationGuidance')}</span>
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto mb-6 bg-[#060e1d] rounded-2xl p-1">
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${tab === t ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>{t}</button>
+      {/* Tabs Navigation */}
+      <div className="flex border-b theme-border mb-6 gap-1">
+        {tabKeys.map(tOpt => (
+          <button
+            key={tOpt.id}
+            onClick={() => setTab(tOpt.id)}
+            className={`px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors ${
+              tab === tOpt.id
+                ? 'border-[#004b87] text-[#004b87] dark:text-sky-300 dark:border-sky-400 font-bold'
+                : 'border-transparent theme-text-muted hover:theme-text-main'
+            }`}
+          >
+            {t(tOpt.labelKey as any)}
+          </button>
         ))}
       </div>
 
-      {/* Tab content */}
-      <div className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-6">
+      {/* Tab Panels */}
+      <div className="theme-card rounded-md p-6 shadow-sm border theme-border">
         {tab === 'Overview' && (
-          <div>
-            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Scheme Overview</h2>
-            <p className="text-slate-300 leading-relaxed mb-6">{scheme.description}</p>
-            <div className="bg-[#132040] rounded-xl p-4">
-              <h3 className="text-white font-semibold mb-3 text-sm">Eligibility Summary</h3>
-              <p className="text-slate-300 text-sm">{scheme.eligibilitySummary}</p>
+          <div className="space-y-4">
+            <h2 className="text-base font-bold theme-text-main" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t('descriptionAndPurpose')}</h2>
+            <p className="theme-text-secondary text-xs sm:text-sm leading-relaxed">{locScheme.description}</p>
+            <div className="theme-card-subtle rounded p-4 border theme-border">
+              <h3 className="text-[#004b87] dark:text-sky-300 font-bold mb-1 text-xs uppercase tracking-wider">{t('checkEligibility')}</h3>
+              <p className="theme-text-main text-xs sm:text-sm leading-relaxed">{locScheme.eligibilitySummary}</p>
             </div>
           </div>
         )}
 
         {tab === 'Eligibility' && (
-          <div>
-            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Eligibility Criteria</h2>
-            <p className="text-slate-400 text-sm mb-4">{scheme.eligibilitySummary}</p>
-            <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <h2 className="text-base font-bold theme-text-main" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t('whoIsEligible')}</h2>
+            <p className="theme-text-muted text-xs leading-relaxed">{locScheme.eligibilitySummary}</p>
+            <div className="grid sm:grid-cols-2 gap-3 pt-2">
               {[
-                { label: 'Minimum Age', value: `${scheme.minAge} years`, icon: '👤' },
-                { label: 'Maximum Age', value: `${scheme.maxAge} years`, icon: '📅' },
-                { label: 'Income Limit', value: scheme.maxIncome > 0 ? `₹${(scheme.maxIncome / 100000).toFixed(0)} Lakh/year` : 'No limit', icon: '💰' },
-                { label: 'Categories', value: scheme.categories.join(', '), icon: '🏷️' },
-              ].map(({ label, value, icon }) => (
-                <div key={label} className="bg-[#132040] rounded-xl p-4 flex gap-3">
-                  <span className="text-2xl">{icon}</span>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-                    <p className="text-white text-sm font-medium">{value}</p>
-                  </div>
+                { label: t('minAgeReq'), value: `${locScheme.minAge} ${t('years')}` },
+                { label: t('maxAgeLimit'), value: `${locScheme.maxAge} ${t('years')}` },
+                { label: t('annualIncomeCriteria'), value: locScheme.maxIncome > 0 ? `Under ₹${(locScheme.maxIncome / 100000).toFixed(0)} Lakh/year` : t('noIncomeCeiling') },
+                { label: t('socialCategories'), value: locScheme.categories.join(', ') },
+              ].map(({ label, value }) => (
+                <div key={label} className="theme-card-subtle rounded p-3 border theme-border">
+                  <p className="text-[10px] theme-text-muted font-bold uppercase">{label}</p>
+                  <p className="theme-text-main text-xs sm:text-sm font-semibold mt-0.5">{value}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-6">
-              <button onClick={() => navigate('eligibility', scheme.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-semibold transition-colors">
-                Check My Eligibility →
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('eligibility', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+                className="gov-btn-primary px-4 py-2 text-xs"
+              >
+                {t('checkEligibility')} →
               </button>
             </div>
           </div>
         )}
 
         {tab === 'Benefits' && (
-          <div>
-            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Key Benefits</h2>
-            <div className="space-y-3">
-              {scheme.benefits.map((b, i) => (
-                <div key={i} className="flex gap-3 items-start bg-[#132040] rounded-xl p-4">
-                  <div className="w-6 h-6 rounded-full bg-emerald-400/15 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                  </div>
-                  <p className="text-slate-200 text-sm">{b}</p>
+          <div className="space-y-4">
+            <h2 className="text-base font-bold theme-text-main" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t('financialAssistanceSlabs')}</h2>
+            <div className="space-y-2">
+              {locScheme.benefits.map((b, i) => (
+                <div key={i} className="flex items-start gap-2.5 theme-card-subtle rounded p-3 border theme-border">
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs mt-0.5">✓</span>
+                  <span className="theme-text-main text-xs sm:text-sm">{b}</span>
                 </div>
               ))}
+            </div>
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('calculator', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+                className="gov-btn-primary px-4 py-2 text-xs"
+              >
+                {t('calculateSubsidy')} →
+              </button>
             </div>
           </div>
         )}
 
         {tab === 'Documents' && (
-          <div>
-            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Required Documents</h2>
-            <div className="space-y-2">
-              {scheme.documents.map((doc, i) => (
-                <div key={i} className="flex gap-3 items-center bg-[#132040] rounded-xl px-4 py-3">
-                  <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  <p className="text-slate-200 text-sm">{doc}</p>
+          <div className="space-y-4">
+            <h2 className="text-base font-bold theme-text-main" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t('requiredDocs')}</h2>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {locScheme.documents.map((doc, i) => (
+                <div key={i} className="theme-card-subtle rounded p-2.5 border theme-border flex items-center gap-2">
+                  <span>📄</span>
+                  <span className="theme-text-main text-xs font-medium">{doc}</span>
                 </div>
               ))}
             </div>
-            <div className="mt-6">
-              <button onClick={() => navigate('documents', scheme.id)} className="w-full border border-white/15 hover:border-white/30 text-white py-3 rounded-xl font-medium transition-colors text-sm">
-                Get Personalized Document Checklist →
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('documents', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+                className="gov-btn-primary px-4 py-2 text-xs"
+              >
+                {t('requiredDocs')} →
               </button>
             </div>
           </div>
         )}
 
         {tab === 'Process' && (
-          <div>
-            <h2 className="text-xl font-bold text-white mb-6" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Application Process</h2>
-            <div className="space-y-4">
-              {scheme.applicationProcess.map((step, i) => (
-                <div key={i} className="flex gap-4 items-start">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 text-white text-sm font-bold">{i + 1}</div>
-                  <div className="flex-1 bg-[#132040] rounded-xl p-4">
-                    <p className="text-slate-200 text-sm">{step}</p>
-                  </div>
+          <div className="space-y-4">
+            <h2 className="text-base font-bold theme-text-main" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t('stepByStepProcess')}</h2>
+            <div className="space-y-2">
+              {locScheme.applicationProcess.map((step, i) => (
+                <div key={i} className="flex items-start gap-3 theme-card-subtle rounded p-3 border theme-border">
+                  <span className="w-5 h-5 rounded-full bg-[#004b87] text-white flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="theme-text-main text-xs sm:text-sm mt-0.5">{step}</span>
                 </div>
               ))}
             </div>
-            <div className="mt-6">
-              <button onClick={() => navigate('guidance', scheme.id)} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-semibold transition-colors">
-                Get Step-by-Step Guidance →
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('guidance', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+                className="gov-btn-primary px-4 py-2 text-xs"
+              >
+                {t('viewFullGuidance')}
               </button>
             </div>
           </div>
         )}
 
         {tab === 'Partners' && (
-          <div>
-            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Authorized Channel Partners</h2>
-            <p className="text-slate-400 text-sm mb-6">These organizations can accept and process your application for this scheme.</p>
-            <div className="grid sm:grid-cols-2 gap-3 mb-6">
-              {['Public Sector Banks', 'Regional Rural Banks', 'Cooperative Banks', 'KVIC / KVIB Offices', 'District Industries Centres', 'State Channelizing Agencies'].map(p => (
-                <div key={p} className="flex items-center gap-3 bg-[#132040] rounded-xl p-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600/15 flex items-center justify-center text-blue-400">🏦</div>
-                  <p className="text-slate-200 text-sm">{p}</p>
-                </div>
-              ))}
+          <div className="space-y-4">
+            <h2 className="text-base font-bold theme-text-main" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t('authorizedBankingChannels')}</h2>
+            <p className="theme-text-muted text-xs">
+              {t('authorizedPartnersDesc')}
+            </p>
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('partners', scheme.id, { fromPage: 'scheme-details', fromLabel: `${locScheme.name}` })}
+                className="gov-btn-primary px-4 py-2 text-xs"
+              >
+                {t('locateBankBranch')}
+              </button>
             </div>
-            <button onClick={() => navigate('partners')} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-semibold transition-colors">
-              Find Nearest Partner →
-            </button>
           </div>
         )}
       </div>

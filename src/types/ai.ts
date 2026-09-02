@@ -38,23 +38,58 @@ export type CallState =
   | 'ended';
 
 /**
- * User profile schema for profile-aware AI scheme matching and context
+ * Verification lifecycle status for user documents
+ */
+export type ProfileDocumentStatus =
+  | 'Uploaded'
+  | 'Processing'
+  | 'Information extracted'
+  | 'Needs confirmation'
+  | 'Verified by user'
+  | 'Missing'
+  | 'Expired';
+
+/**
+ * Structured document record attached to a user's welfare profile
+ */
+export interface ProfileDocument {
+  id: string;
+  type: string; // e.g. 'Aadhaar Card', 'Income Certificate', 'Community Certificate', 'Bank Passbook', 'Project Report', 'Educational Certificate', 'Other'
+  name: string;
+  status: ProfileDocumentStatus;
+  uploadedAt?: string;
+  extractedData?: Record<string, string>;
+  fileUrl?: string;
+  verifiedAt?: string;
+}
+
+/**
+ * User profile schema for reusable profile-aware AI scheme matching and context
  */
 export interface UserProfile {
   id?: string;
   name: string;
   age?: number;
+  dateOfBirth?: string;
   gender?: 'Male' | 'Female' | 'Other' | string;
   category?: 'General' | 'SC' | 'ST' | 'OBC' | 'EWS' | 'Minorities' | 'Women' | 'Ex-Servicemen' | string;
+  differentlyAbled?: boolean;
+  maritalStatus?: string;
   annualIncome?: number | string;
   occupation?: string;
+  employmentStatus?: 'Self-Employed' | 'Salaried' | 'Unemployed' | 'Business Owner' | 'Farmer' | 'Artisan / Worker' | string;
   locationType?: 'urban' | 'rural' | 'semi-urban';
   city?: string;
+  district?: string;
   state?: string;
+  address?: string;
+  pincode?: string;
   businessType?: string;
   loanAmountRequired?: number | string;
+  financialPreferences?: string;
   existingDocuments?: string[];
   educationLevel?: string;
+  documents?: ProfileDocument[];
 }
 
 /**

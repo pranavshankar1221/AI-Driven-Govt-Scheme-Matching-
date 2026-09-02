@@ -1,129 +1,317 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { NavProps } from '../types';
 import { schemes } from '../data/schemes';
+import { useLanguage } from '../context/LanguageContext';
 
-const types = ['All', 'Business Loan', 'Housing Loan Subsidy', 'Skill Development + Loan', 'Working Capital Loan', 'Craft Development'];
-const categories = ['All', 'General', 'SC', 'ST', 'OBC', 'Women', 'EWS', 'BPL', 'Street Vendors', 'Weavers'];
-
-export default function SchemesCatalog({ navigate }: NavProps) {
+export default function SchemesCatalog({ navigate, onBack }: NavProps) {
   const [search, setSearch] = useState('');
   const [type, setType] = useState('All');
   const [category, setCategory] = useState('All');
+  const [organization, setOrganization] = useState('All');
+  const { t, getLocalizedSchemes } = useLanguage();
 
-  const filtered = schemes.filter(s => {
-    const matchSearch = !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.purpose.toLowerCase().includes(search.toLowerCase()) || s.organization.toLowerCase().includes(search.toLowerCase());
-    const matchType = type === 'All' || s.type === type;
-    const matchCategory = category === 'All' || s.categories.includes(category);
-    return matchSearch && matchType && matchCategory;
-  });
+  const localizedList = getLocalizedSchemes(schemes);
+
+  // Extract unique filter options from actual existing scheme dataset
+  const types = useMemo(() => {
+    const list = Array.from(new Set(schemes.map(s => s.type)));
+    return ['All', ...list];
+  }, []);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    schemes.forEach(s => s.categories.forEach(c => set.add(c)));
+    return ['All', ...Array.from(set)];
+  }, []);
+
+  const organizations = useMemo(() => {
+    const list = Array.from(new Set(schemes.map(s => s.organization.split('/')[0].trim())));
+    return ['All', ...list];
+  }, []);
+
+  const filtered = useMemo(() => {
+    return localizedList.filter(s => {
+      const q = search.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        s.name.toLowerCase().includes(q) ||
+        s.purpose.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        s.organization.toLowerCase().includes(q) ||
+        s.financialAssistance.toLowerCase().includes(q) ||
+        s.categories.some(c => c.toLowerCase().includes(q));
+
+      const matchType = type === 'All' || s.type.toLowerCase().includes(type.toLowerCase());
+      const matchCategory = category === 'All' || s.categories.includes(category);
+      const matchOrg = organization === 'All' || s.organization.toLowerCase().includes(organization.toLowerCase());
+
+      return matchSearch && matchType && matchCategory && matchOrg;
+    });
+  }, [localizedList, search, type, category, organization]);
+
+  const hasActiveFilters = search.trim() !== '' || type !== 'All' || category !== 'All' || organization !== 'All';
+
+  const clearAllFilters = () => {
+    setSearch('');
+    setType('All');
+    setCategory('All');
+    setOrganization('All');
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-      {/* Header */}
-      <div className="mb-10">
-        <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
-          <button onClick={() => navigate('home')} className="hover:text-white transition-colors">Home</button>
-          <span>/</span>
-          <span className="text-white">Schemes Catalog</span>
-        </div>
-        <h1 className="text-4xl font-bold text-white mb-2" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Government Schemes</h1>
-        <p className="text-slate-400">Browse and filter {schemes.length}+ central government welfare and financial assistance schemes.</p>
-      </div>
-
-      {/* Search + Filters */}
-      <div className="space-y-4 mb-8">
-        <div className="relative">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search schemes by name, purpose, or ministry…"
-            className="w-full bg-[#0f1f3d] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder-slate-500 text-sm outline-none focus:border-blue-500/50 transition-colors"
-          />
-        </div>
-
-        <div className="flex gap-3 flex-wrap">
-          <div className="flex-1 min-w-48">
-            <p className="text-xs text-slate-500 mb-1.5">Scheme Type</p>
-            <div className="flex flex-wrap gap-2">
-              {types.map(t => (
-                <button key={t} onClick={() => setType(t)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${type === t ? 'bg-blue-600 border-blue-600 text-white' : 'border-white/15 text-slate-400 hover:border-white/30 hover:text-white'}`}>{t}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <p className="text-xs text-slate-500 mb-1.5">Category</p>
-          <div className="flex flex-wrap gap-2">
-            {categories.map(c => (
-              <button key={c} onClick={() => setCategory(c)} className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${category === c ? 'bg-amber-500 border-amber-500 text-white' : 'border-white/15 text-slate-400 hover:border-white/30 hover:text-white'}`}>{c}</button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Results count */}
-      <div className="flex items-center justify-between mb-6">
-        <p className="text-slate-400 text-sm">Showing <span className="text-white font-semibold">{filtered.length}</span> schemes</p>
-        <button onClick={() => navigate('ai-matcher')} className="flex items-center gap-2 text-sm bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 px-4 py-2 rounded-xl border border-blue-500/20 transition-colors">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-          Use AI Matcher
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Contextual Back Button */}
+      <div className="mb-3">
+        <button
+          onClick={() => {
+            if (onBack) onBack();
+            else navigate('home');
+          }}
+          className="inline-flex items-center gap-1.5 text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold transition-colors"
+        >
+          <span>←</span>
+          <span>{t('home')}</span>
         </button>
       </div>
 
-      {/* Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filtered.map(scheme => (
-          <div key={scheme.id} className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-5 flex flex-col hover:border-blue-500/30 transition-all group hover:-translate-y-0.5">
-            <div className="flex items-start gap-2 mb-3 flex-wrap">
-              {scheme.badge && <span className="text-xs font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">{scheme.badge}</span>}
-              <span className="text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">{scheme.type}</span>
-            </div>
-
-            <h3 className="text-white font-semibold text-sm leading-snug mb-1.5 group-hover:text-blue-300 transition-colors" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{scheme.name}</h3>
-            <p className="text-xs text-slate-500 mb-2">{scheme.organization}</p>
-            <p className="text-xs text-slate-400 leading-relaxed mb-3 flex-1 line-clamp-2">{scheme.purpose}</p>
-
-            <div className="bg-[#132040] rounded-xl p-3 mb-3">
-              <p className="text-xs text-slate-500 mb-1">Financial Assistance</p>
-              <p className="text-sm text-amber-400 font-medium leading-snug">{scheme.financialAssistance}</p>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              <div className="flex items-center gap-1 text-xs text-slate-500">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                Age {scheme.minAge}–{scheme.maxAge}
-              </div>
-              {scheme.maxIncome > 0 && (
-                <div className="flex items-center gap-1 text-xs text-slate-500">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  Income &lt;₹{(scheme.maxIncome / 100000).toFixed(0)}L
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-1 mb-4">
-              {scheme.categories.slice(0, 4).map(c => (
-                <span key={c} className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-400">{c}</span>
-              ))}
-              {scheme.categories.length > 4 && <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-500">+{scheme.categories.length - 4}</span>}
-            </div>
-
-            <div className="flex gap-2 mt-auto">
-              <button onClick={() => navigate('scheme-details', scheme.id)} className="flex-1 text-xs bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-medium transition-colors">View Details</button>
-              <button onClick={() => navigate('eligibility', scheme.id)} className="flex-1 text-xs border border-white/15 hover:border-white/30 text-slate-300 hover:text-white py-2 rounded-lg transition-colors">Check Eligibility</button>
-            </div>
-          </div>
-        ))}
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 theme-text-muted text-xs sm:text-sm mb-4">
+        <button onClick={() => navigate('home')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('home')}</button>
+        <span>/</span>
+        <span className="theme-text-main font-semibold">{t('schemes')}</span>
       </div>
 
-      {filtered.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-4xl mb-4">🔍</p>
-          <p className="text-slate-400 text-lg mb-2">No schemes match your filters</p>
-          <p className="text-slate-500 text-sm mb-4">Try adjusting your search or use the AI Matcher for personalized results.</p>
-          <button onClick={() => navigate('ai-matcher')} className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors">Use AI Matcher</button>
+      {/* Page Header */}
+      <div className="mb-6 pb-4 border-b theme-border">
+        <h1 className="text-2xl sm:text-3xl font-bold theme-text-main tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+          {t('catalogTitle')}
+        </h1>
+        <p className="theme-text-muted text-xs sm:text-sm mt-0.5">
+          {t('catalogSubtitle')}
+        </p>
+      </div>
+
+      {/* Search & "Find My Scheme" AI Action Bar */}
+      <div className="theme-card rounded-md p-4 sm:p-5 mb-6 border theme-border shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Main Search Input */}
+          <div className="relative flex-1">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={t('catalogSearchPlaceholder')}
+              className="w-full theme-input rounded pl-10 pr-4 py-2.5 theme-text-main text-xs sm:text-sm outline-none shadow-inner"
+            />
+          </div>
+
+          {/* Search Button & "Find My Scheme" with AI */}
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => {}}
+              className="px-4 py-2.5 gov-btn-secondary text-xs font-semibold"
+            >
+              {t('search')}
+            </button>
+            <button
+              onClick={() => navigate('ai-matcher', undefined, { fromPage: 'catalog', fromLabel: 'Schemes' })}
+              className="px-4 py-2.5 gov-btn-primary text-xs font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap"
+            >
+              <span>{t('findMySchemeAI')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search vs AI Matcher Guidance */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] theme-text-muted pt-2 border-t theme-border">
+          <p>
+            <strong className="theme-text-main">{t('directSearch')}</strong> {t('directSearchDesc')}
+          </p>
+          <p className="text-[#004b87] dark:text-sky-300 font-medium">
+            {t('aiMatcherPromo')}
+          </p>
+        </div>
+      </div>
+
+      {/* Filter Options Section */}
+      <div className="theme-card rounded-md p-4 mb-6 border theme-border shadow-xs">
+        <div className="flex items-center justify-between mb-3 border-b theme-border pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold theme-text-main uppercase tracking-wider">{t('filterSchemes')}</span>
+            {hasActiveFilters && (
+              <span className="text-[10px] font-semibold bg-[#004b87] text-white px-2 py-0.2 rounded-full">
+                {t('filtersActive')}
+              </span>
+            )}
+          </div>
+          {hasActiveFilters && (
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold"
+            >
+              {t('clearAllFilters')}
+            </button>
+          )}
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-3">
+          {/* 1. Category / Target Group */}
+          <div>
+            <label className="text-[11px] theme-text-muted font-bold block mb-1 uppercase tracking-wider">{t('beneficiaryCategory')}</label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full theme-input rounded px-3 py-2 text-xs theme-text-main outline-none"
+            >
+              {categories.map(c => (
+                <option key={c} value={c}>
+                  {c === 'All' ? t('allCategories') : c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Assistance Type */}
+          <div>
+            <label className="text-[11px] theme-text-muted font-bold block mb-1 uppercase tracking-wider">{t('assistanceType')}</label>
+            <select
+              value={type}
+              onChange={e => setType(e.target.value)}
+              className="w-full theme-input rounded px-3 py-2 text-xs theme-text-main outline-none"
+            >
+              {types.map(tOption => (
+                <option key={tOption} value={tOption}>
+                  {tOption === 'All' ? t('allAssistanceTypes') : tOption}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Ministry / Department */}
+          <div>
+            <label className="text-[11px] theme-text-muted font-bold block mb-1 uppercase tracking-wider">{t('ministryAgency')}</label>
+            <select
+              value={organization}
+              onChange={e => setOrganization(e.target.value)}
+              className="w-full theme-input rounded px-3 py-2 text-xs theme-text-main outline-none"
+            >
+              {organizations.map(org => (
+                <option key={org} value={org}>
+                  {org === 'All' ? t('allMinistries') : org}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Header Count */}
+      <div className="flex justify-between items-center mb-4 text-xs">
+        <p className="theme-text-muted font-medium">
+          {t('showingSchemesCount')} <strong className="theme-text-main text-sm">{filtered.length}</strong> {filtered.length === 1 ? t('welfareScheme') : t('welfareSchemes')}
+        </p>
+        {hasActiveFilters && (
+          <button
+            onClick={clearAllFilters}
+            className="text-[#004b87] dark:text-sky-300 hover:underline font-semibold text-xs"
+          >
+            {t('resetFilters')}
+          </button>
+        )}
+      </div>
+
+      {/* Schemes Results List */}
+      {filtered.length === 0 ? (
+        <div className="theme-card rounded-md p-10 text-center border theme-border space-y-3">
+          <p className="theme-text-main text-base font-bold">{t('noSchemesFound')}</p>
+          <p className="theme-text-muted text-xs max-w-md mx-auto">
+            {t('noSchemesDesc')}
+          </p>
+          <div className="flex justify-center gap-2 pt-2">
+            <button
+              onClick={clearAllFilters}
+              className="px-4 py-2 gov-btn-secondary text-xs"
+            >
+              {t('clearAllFilters')}
+            </button>
+            <button
+              onClick={() => navigate('ai-matcher', undefined, { fromPage: 'catalog', fromLabel: 'Schemes' })}
+              className="px-4 py-2 gov-btn-primary text-xs font-bold"
+            >
+              {t('tryAiMatcher')}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map(scheme => (
+            <div
+              key={scheme.id}
+              className="theme-card theme-card-hover rounded-lg p-5 flex flex-col justify-between border shadow-sm"
+            >
+              <div>
+                {/* Header Badges */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] text-[#004b87] dark:text-sky-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded font-semibold">
+                    {scheme.type}
+                  </span>
+                  {scheme.badge && (
+                    <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                      {scheme.badge}
+                    </span>
+                  )}
+                </div>
+
+                {/* Scheme Title & Ministry */}
+                <h2 className="theme-text-main font-bold text-base mb-1 tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                  {scheme.name}
+                </h2>
+                <p className="text-[11px] theme-text-muted mb-3 font-medium">{scheme.organization}</p>
+
+                {/* Purpose / Description */}
+                <p className="theme-text-secondary text-xs line-clamp-2 mb-3.5 leading-relaxed">
+                  {scheme.purpose}
+                </p>
+
+                {/* Financial Assistance Highlight */}
+                <div className="theme-card-subtle rounded p-2.5 mb-3 border theme-border">
+                  <p className="text-[10px] theme-text-muted uppercase font-bold mb-0.5">{t('financialAssistance')}</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 font-bold leading-snug">{scheme.financialAssistance}</p>
+                </div>
+
+                {/* Metadata details */}
+                <div className="grid grid-cols-2 gap-2 text-[11px] theme-text-muted mb-4 pt-1 border-t theme-border">
+                  <div>
+                    <span className="text-[10px] uppercase block font-semibold">{t('ageLimit')}</span>
+                    <span className="theme-text-main font-medium">{scheme.minAge} – {scheme.maxAge} {t('years')}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase block font-semibold">{t('targetGroups')}</span>
+                    <span className="theme-text-main font-medium truncate block">{scheme.categories.slice(0, 3).join(', ')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-3 border-t theme-border text-xs">
+                <button
+                  onClick={() => navigate('scheme-details', scheme.id, { fromPage: 'catalog', fromLabel: 'Schemes' })}
+                  className="flex-1 py-2 gov-btn-primary text-center font-bold"
+                >
+                  {t('viewDetails')}
+                </button>
+                <button
+                  onClick={() => navigate('eligibility', scheme.id, { fromPage: 'catalog', fromLabel: 'Schemes' })}
+                  className="flex-1 py-2 gov-btn-secondary text-center"
+                >
+                  {t('eligibility')}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

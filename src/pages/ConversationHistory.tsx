@@ -1,101 +1,142 @@
+import { useState } from 'react';
 import type { NavProps } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 const conversations = [
   {
-    id: '1', title: 'Tailoring business loan enquiry', date: '2024-01-15, 2:30 PM', duration: '8 min', lang: 'Tamil + English',
-    preview: 'Found PMEGP, MUDRA, Stand-Up India matching 94%, 88%, 72%',
-    messages: 12, schemeCards: 3,
+    id: '1',
+    title: 'Tailoring business loan enquiry',
+    date: 'Today, 2:30 PM',
+    duration: '8 min',
+    lang: 'Tamil + English',
+    preview: 'Matched PMEGP (94%), MUDRA (88%), and Stand-Up India (72%) based on Coimbatore urban profile.',
+    messages: 12,
+    schemeCards: 3,
   },
   {
-    id: '2', title: 'MUDRA Yojana eligibility check', date: '2024-01-14, 4:15 PM', duration: '5 min', lang: 'English',
-    preview: 'Eligible. Missing: PAN Card, Bank Statement.',
-    messages: 8, schemeCards: 1,
+    id: '2',
+    title: 'MUDRA Yojana eligibility verification',
+    date: 'Yesterday, 4:15 PM',
+    duration: '5 min',
+    lang: 'English',
+    preview: 'Verified eligibility criteria for Kishore loan. Required: PAN card and 6-month bank statement.',
+    messages: 8,
+    schemeCards: 1,
   },
   {
-    id: '3', title: 'EMI calculation for PMEGP loan', date: '2024-01-12, 11:00 AM', duration: '4 min', lang: 'English',
-    preview: 'For ₹3L with 25% subsidy: EMI ₹7,052/month over 36 months.',
-    messages: 6, schemeCards: 0,
+    id: '3',
+    title: 'EMI & Subsidy calculation for PMEGP loan',
+    date: '12 Aug, 11:00 AM',
+    duration: '4 min',
+    lang: 'English',
+    preview: 'Calculated project outlay for ₹3 Lakh with 25% subsidy: Monthly EMI ₹7,052 over 36 months.',
+    messages: 6,
+    schemeCards: 0,
   },
   {
-    id: '4', title: 'Required documents enquiry', date: '2024-01-10, 9:30 AM', duration: '3 min', lang: 'Tamil',
-    preview: 'Aadhaar, PAN, Income Certificate, Project Report required for PMEGP.',
-    messages: 5, schemeCards: 0,
+    id: '4',
+    title: 'PMEGP mandatory documents checklist',
+    date: '10 Aug, 9:30 AM',
+    duration: '3 min',
+    lang: 'Tamil',
+    preview: 'Aadhaar, PAN, Income Certificate, and Project Report required for first-time applicant submission.',
+    messages: 5,
+    schemeCards: 0,
   },
   {
-    id: '5', title: 'Nearest bank partner in Coimbatore', date: '2024-01-08, 3:45 PM', duration: '6 min', lang: 'Tamil + English',
-    preview: 'Found Canara Bank (0.8 km), SBI T. Nagar (1.2 km), DIC Nandanam (2.1 km).',
-    messages: 9, schemeCards: 2,
-  },
-  {
-    id: '6', title: 'Stand-Up India eligibility check', date: '2024-01-05, 1:00 PM', duration: '7 min', lang: 'English',
-    preview: 'Needs Review — SC/ST or women category required for Stand-Up India.',
-    messages: 11, schemeCards: 2,
-  },
-  {
-    id: '7', title: 'Government housing scheme options', date: '2024-01-03, 10:20 AM', duration: '5 min', lang: 'Hindi',
-    preview: 'PMAY CLSS for EWS/LIG with up to 6.5% interest subsidy found.',
-    messages: 7, schemeCards: 1,
+    id: '5',
+    title: 'Nearest partner bank in Coimbatore',
+    date: '08 Aug, 3:45 PM',
+    duration: '6 min',
+    lang: 'Tamil + English',
+    preview: 'Identified Canara Bank (0.8 km), SBI Gandhipuram (1.2 km), and DIC Coimbatore (2.1 km).',
+    messages: 9,
+    schemeCards: 2,
   },
 ];
 
-export default function ConversationHistory({ navigate }: NavProps) {
+export default function ConversationHistory({ navigate, onBack }: NavProps) {
+  const [search, setSearch] = useState('');
+  const { t } = useLanguage();
+
+  const filtered = conversations.filter(c =>
+    c.title.toLowerCase().includes(search.toLowerCase()) ||
+    c.preview.toLowerCase().includes(search.toLowerCase()) ||
+    c.lang.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-      <div className="flex items-center gap-2 text-slate-500 text-sm mb-6">
-        <button onClick={() => navigate('home')} className="hover:text-white transition-colors">Home</button>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      {/* Contextual Back Button */}
+      <div className="mb-3">
+        <button
+          onClick={() => {
+            if (onBack) onBack();
+            else navigate('dashboard');
+          }}
+          className="inline-flex items-center gap-1.5 text-xs text-[#004b87] dark:text-sky-300 hover:underline font-semibold transition-colors"
+        >
+          <span>←</span>
+          <span>{t('back')}</span>
+        </button>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 theme-text-muted text-xs sm:text-sm mb-4">
+        <button onClick={() => navigate('home')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('home')}</button>
         <span>/</span>
-        <span className="text-white">Conversation History</span>
+        <button onClick={() => navigate('dashboard')} className="hover:text-[#004b87] dark:hover:text-sky-300 transition-colors">{t('dashboard')}</button>
+        <span>/</span>
+        <span className="theme-text-main font-semibold">{t('chatHistory')}</span>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-3 border-b theme-border">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-1" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Conversation History</h1>
-          <p className="text-slate-400 text-sm">All your past Sahaya AI sessions</p>
+          <h1 className="text-2xl sm:text-3xl font-bold theme-text-main tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+            {t('chatHistory')}
+          </h1>
+          <p className="theme-text-muted text-xs sm:text-sm mt-0.5">{t('portalFooterTag')}</p>
         </div>
-        <button onClick={() => navigate('ai-matcher')} className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-semibold transition-colors">New Chat</button>
+        <button
+          onClick={() => navigate('ai-matcher')}
+          className="gov-btn-primary px-4 py-2 text-xs self-start sm:self-auto font-bold"
+        >
+          <span>✦ {t('matchUsingAi')}</span>
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'Total Conversations', value: conversations.length },
-          { label: 'Schemes Discovered', value: '12' },
-          { label: 'Languages Used', value: '3' },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-4 text-center">
-            <p className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{value}</p>
-            <p className="text-xs text-slate-500">{label}</p>
-          </div>
-        ))}
+      {/* Search Bar */}
+      <div className="mb-5">
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={t('catalogSearchPlaceholder')}
+          className="w-full theme-input rounded-lg px-4 py-2.5 theme-text-main text-xs sm:text-sm outline-none"
+        />
       </div>
 
-      {/* Conversation list */}
+      {/* Conversation List */}
       <div className="space-y-3">
-        {conversations.map((conv) => (
-          <div key={conv.id} className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-5 hover:border-blue-500/30 transition-all cursor-pointer group">
-            <div className="flex items-start justify-between gap-4 mb-3">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-white font-semibold text-sm group-hover:text-blue-300 transition-colors mb-1 truncate">{conv.title}</h3>
-                <p className="text-slate-400 text-xs">{conv.preview}</p>
-              </div>
-              <button className="text-xs text-blue-400 hover:text-blue-300 border border-blue-500/25 hover:border-blue-500/50 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">
-                Resume
-              </button>
+        {filtered.map((conv) => (
+          <div
+            key={conv.id}
+            onClick={() => navigate('ai-matcher')}
+            className="theme-card theme-card-hover rounded-lg p-5 border theme-border cursor-pointer shadow-sm"
+          >
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <h3 className="theme-text-main font-bold text-xs sm:text-sm truncate">
+                {conv.title}
+              </h3>
+              <span className="text-[10px] theme-text-muted font-mono flex-shrink-0">{conv.date}</span>
             </div>
-            <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-              <span className="flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                {conv.date}
-              </span>
-              <span>{conv.duration}</span>
-              <span className="flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                {conv.messages} messages
-              </span>
-              {conv.schemeCards > 0 && (
-                <span className="text-amber-400">{conv.schemeCards} scheme cards</span>
-              )}
-              <span className="text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">{conv.lang}</span>
+
+            <p className="theme-text-muted text-xs leading-relaxed mb-3">{conv.preview}</p>
+
+            <div className="flex items-center gap-3 text-[11px] theme-text-muted pt-2.5 border-t theme-border">
+              <span>🗣️ {conv.lang}</span>
+              <span>💬 {conv.messages} messages</span>
+              <span>⏱️ {conv.duration}</span>
+              <span className="text-[#004b87] dark:text-sky-300 font-semibold ml-auto">{t('viewDetails')} →</span>
             </div>
           </div>
         ))}

@@ -1,52 +1,50 @@
 import type { Page } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Props {
   navigate: (page: Page, schemeId?: string) => void;
 }
 
 export default function Footer({ navigate }: Props) {
-  return (
-    <footer className="bg-[#060e1d] border-t border-white/8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+  const { t } = useLanguage();
 
-          {/* Brand */}
+  return (
+    <footer className="bg-[#001f3f] text-slate-300 border-t border-[#001830] text-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+
+          {/* Brand & Portal Purpose */}
           <div>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/30">
-                <span className="text-white font-bold text-sm" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>S</span>
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-7 h-7 rounded bg-[#0284c7] flex items-center justify-center font-bold text-white text-sm">
+                S
               </div>
-              <span className="text-white font-bold text-xl" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Sahaya</span>
-              <span className="text-[10px] text-amber-400 font-semibold bg-amber-400/10 px-1.5 py-0.5 rounded">AI</span>
+              <span className="text-white font-bold text-base" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Sahaya</span>
             </div>
-            <p className="text-slate-500 text-sm leading-relaxed mb-5">
-              AI-powered government welfare platform helping beneficiaries discover, check eligibility, and apply for schemes.
+            <p className="text-slate-400 text-xs leading-relaxed mb-3">
+              {t('portalFooterTag')}
             </p>
-            <div className="flex gap-2">
-              {['𝕏', 'f', '▶', 'in'].map(s => (
-                <div key={s} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/8 flex items-center justify-center cursor-pointer transition-colors text-slate-400 hover:text-white text-xs font-bold">
-                  {s}
-                </div>
-              ))}
-            </div>
+            <p className="text-[11px] text-slate-400 font-medium">
+              National Digital Public Infrastructure Initiative
+            </p>
           </div>
 
-          {/* Platform */}
+          {/* Citizen Services */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-4">Platform</h4>
-            <ul className="space-y-2.5">
+            <h4 className="text-white font-semibold text-xs uppercase tracking-wider mb-3">{t('citizenServices')}</h4>
+            <ul className="space-y-2 text-xs">
               {[
-                ['Scheme Catalog', 'catalog'],
-                ['AI Matcher', 'ai-matcher'],
-                ['Eligibility Check', 'eligibility'],
-                ['Financial Calculator', 'calculator'],
-                ['Required Documents', 'documents'],
-                ['Partner Locator', 'partners'],
+                ['Government Schemes Directory', 'catalog'],
+                ['AI Scheme Matcher', 'ai-matcher'],
+                ['Eligibility Evaluation', 'eligibility'],
+                ['Financial Subsidy Calculator', 'calculator'],
+                ['Required Documents Locker', 'documents'],
+                ['Authorized Bank Partners', 'partners'],
               ].map(([label, page]) => (
                 <li key={page}>
                   <button
                     onClick={() => navigate(page as Page)}
-                    className="text-slate-500 hover:text-slate-300 text-sm transition-colors"
+                    className="text-slate-300 hover:text-white transition-colors"
                   >
                     {label}
                   </button>
@@ -55,22 +53,22 @@ export default function Footer({ navigate }: Props) {
             </ul>
           </div>
 
-          {/* Popular Schemes */}
+          {/* Popular Welfare Schemes */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-4">Popular Schemes</h4>
-            <ul className="space-y-2.5">
+            <h4 className="text-white font-semibold text-xs uppercase tracking-wider mb-3">{t('popularSchemes')}</h4>
+            <ul className="space-y-2 text-xs">
               {[
-                ['PMEGP', 'pmegp'],
-                ['MUDRA Yojana', 'mudra'],
-                ['Stand-Up India', 'standup'],
-                ['NULM', 'nulm'],
-                ['PM Awas Yojana', 'pmay'],
-                ['PM SVANidhi', 'svamitva'],
+                ['PMEGP (Micro Enterprise Subsidy)', 'pmegp'],
+                ['Pradhan Mantri MUDRA Yojana', 'mudra'],
+                ['Stand-Up India Scheme', 'standup'],
+                ['DAY-NULM (Urban Livelihoods)', 'nulm'],
+                ['Pradhan Mantri Awas Yojana', 'pmay'],
+                ['PM SVANidhi (Street Vendors)', 'svamitva'],
               ].map(([label, id]) => (
                 <li key={id}>
                   <button
                     onClick={() => navigate('scheme-details', id)}
-                    className="text-slate-500 hover:text-slate-300 text-sm transition-colors"
+                    className="text-slate-300 hover:text-white transition-colors"
                   >
                     {label}
                   </button>
@@ -79,44 +77,44 @@ export default function Footer({ navigate }: Props) {
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Support & Helpline */}
           <div>
-            <h4 className="text-white font-semibold text-sm mb-4">Support</h4>
-            <ul className="space-y-2.5 mb-6">
+            <h4 className="text-white font-semibold text-xs uppercase tracking-wider mb-3">{t('citizenSupport')}</h4>
+            <ul className="space-y-2 text-xs mb-4">
               {[
-                ['Help & FAQs', 'faq'],
-                ['Application Guidance', 'guidance'],
-                ['Dashboard', 'dashboard'],
-                ['Conversation History', 'conversations'],
-                ['Login / Sign Up', 'login'],
+                ['Application Guidance & Roadmap', 'guidance'],
+                ['Frequently Asked Questions', 'faq'],
+                ['Beneficiary Welfare Profile', 'profile'],
+                ['AI Consultation History', 'conversations'],
               ].map(([label, page]) => (
                 <li key={page}>
                   <button
                     onClick={() => navigate(page as Page)}
-                    className="text-slate-500 hover:text-slate-300 text-sm transition-colors"
+                    className="text-slate-300 hover:text-white transition-colors"
                   >
                     {label}
                   </button>
                 </li>
               ))}
             </ul>
-            <div className="bg-[#0f1f3d] border border-white/8 rounded-xl p-4">
-              <p className="text-[11px] text-slate-500 mb-1 uppercase tracking-wide font-medium">Helpline</p>
-              <p className="text-white font-bold text-base mb-0.5">1800-XXX-XXXX</p>
-              <p className="text-[11px] text-slate-500">Toll-free · Mon–Sat, 9 AM – 6 PM</p>
+
+            <div className="bg-[#002b54] border border-white/10 rounded-md p-3 text-slate-300">
+              <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">{t('tollFree')}</p>
+              <p className="text-white font-bold text-sm tracking-wide mt-0.5">1800-11-2024</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{t('timings')}</p>
             </div>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-white/6 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-slate-600 text-xs">
-            © 2024 Sahaya. Empowering beneficiaries through AI-guided government scheme access.
+        {/* Legal Disclaimer & Portals Reference */}
+        <div className="border-t border-white/10 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
+          <p>
+            {t('disclaimerText')}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-slate-600 text-xs cursor-pointer hover:text-slate-400 transition-colors">Privacy Policy</span>
-            <span className="text-slate-600 text-xs cursor-pointer hover:text-slate-400 transition-colors">Terms of Use</span>
-            <span className="text-slate-600 text-xs cursor-pointer hover:text-slate-400 transition-colors">Disclaimer</span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button onClick={() => navigate('faq')} className="hover:text-white transition-colors">{t('privacyPolicy')}</button>
+            <span>•</span>
+            <button onClick={() => navigate('faq')} className="hover:text-white transition-colors">{t('termsOfService')}</button>
           </div>
         </div>
       </div>
