@@ -75,6 +75,7 @@ export interface VoiceSynthesizeRequest {
  */
 export interface VoiceSynthesizeResponse {
   audioUrl: string;
+  audioBase64?: string;
   durationSeconds: number;
 }
 

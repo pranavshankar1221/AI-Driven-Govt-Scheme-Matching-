@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { Page, Scheme } from '../types';
 import type { VoiceState, Message, AgentProgressStep } from '../types/ai';
 import { detectLanguage } from '../services/languageDetector';
 import { useProfile } from '../context/ProfileContext';
 import { aiService } from '../services/aiService';
+import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import AIAgentProgress from './ai/AIAgentProgress';
 import AISchemeCard from './ai/AISchemeCard';
 
@@ -26,10 +27,39 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
   ]);
   const [input, setInput] = useState('');
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const {
+    isRecording,
+    error: recorderError,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  } = useVoiceRecorder();
+
+  const stopAudioPlayback = useCallback(() => {
+    if (currentAudioRef.current) {
+      try {
+        currentAudioRef.current.pause();
+      } catch {
+        // Ignore audio pause error
+      }
+      currentAudioRef.current = null;
+    }
+    setPlayingMessageId(null);
+    setVoiceState('idle');
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cancelRecording();
+      stopAudioPlayback();
+    };
+  }, [cancelRecording, stopAudioPlayback]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,6 +79,46 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       });
     }
   }, [currentPage, selectedScheme]);
+
+  const playTTS = useCallback(async (text: string, messageId: string) => {
+    stopAudioPlayback();
+    setPlayingMessageId(messageId);
+    setVoiceState('processing');
+
+    try {
+      const ttsResponse = await aiService.synthesizeSpeech({
+        text,
+        voiceGender: 'female',
+      });
+
+      const audioSrc = ttsResponse.audioUrl || (ttsResponse.audioBase64 ? `data:audio/mp3;base64,${ttsResponse.audioBase64}` : '');
+      if (!audioSrc) {
+        setVoiceState('idle');
+        setPlayingMessageId(null);
+        return;
+      }
+
+      const audio = new Audio(audioSrc);
+      currentAudioRef.current = audio;
+
+      audio.onplay = () => {
+        setVoiceState('playing');
+        setPlayingMessageId(messageId);
+      };
+
+      audio.onended = () => {
+        stopAudioPlayback();
+      };
+
+      audio.onerror = () => {
+        stopAudioPlayback();
+      };
+
+      await audio.play();
+    } catch {
+      stopAudioPlayback();
+    }
+  }, [stopAudioPlayback]);
 
   const sendMessage = async (text: string, isVoice = false) => {
     if (!text.trim()) return;
@@ -73,8 +143,9 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       { id: '5', label: 'Checking financial fit', status: 'pending' },
     ];
 
+    const thinkingMsgId = (Date.now() + 1).toString();
     const thinkingMsg: Message = {
-      id: Date.now() + 1 + '',
+      id: thinkingMsgId,
       role: 'ai',
       text: '',
       timestamp: new Date(),
@@ -130,7 +201,11 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
             : m
         )
       );
-      if (isVoice) setVoiceState('playing');
+
+      // If voice message input, automatically synthesize and play AI response speech
+      if (isVoice && response.text) {
+        playTTS(response.text, thinkingMsgId);
+      }
     } catch {
       clearInterval(stepInterval);
       setMessages(prev =>
@@ -149,16 +224,59 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
 
   const handleSend = () => { if (input.trim()) sendMessage(input); };
 
-  const handleVoiceMic = () => {
-    if (voiceState !== 'idle') { setVoiceState('idle'); if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current); return; }
-    setVoiceState('listening');
-    voiceTimerRef.current = setTimeout(() => {
-      setVoiceState('processing');
-      setTimeout(() => {
+  const handleStopRecording = async () => {
+    setVoiceState('processing');
+    try {
+      const audioBlob = await stopRecording();
+      if (!audioBlob || audioBlob.size === 0) {
         setVoiceState('idle');
-        sendMessage('Enakku tailoring business start panna loan venum. Coimbatore-la irukken.', true);
-      }, 1500);
-    }, 3000);
+        return;
+      }
+
+      const sttResult = await aiService.transcribeAudio({
+        audioBlob,
+      });
+
+      if (!sttResult.transcription || !sttResult.transcription.trim()) {
+        setVoiceState('idle');
+        return;
+      }
+
+      setVoiceState('idle');
+      await sendMessage(sttResult.transcription, true);
+    } catch {
+      setVoiceState('idle');
+      const errorMsg: Message = {
+        id: Date.now().toString(),
+        role: 'ai',
+        text: 'Sorry, I could not process your voice audio. Please check your microphone or type your message.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    }
+  };
+
+  const handleCancelRecording = () => {
+    cancelRecording();
+    setVoiceState('idle');
+  };
+
+  const handleVoiceMic = async () => {
+    stopAudioPlayback();
+
+    if (isRecording || voiceState === 'listening') {
+      await handleStopRecording();
+      return;
+    }
+
+    if (voiceState === 'processing') return;
+
+    try {
+      setVoiceState('listening');
+      await startRecording();
+    } catch {
+      setVoiceState('idle');
+    }
   };
 
   const quickActions = [
@@ -395,17 +513,28 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                     <div className="flex items-center gap-2 mt-1.5 ml-1">
                       <button
                         onClick={() => {
-                          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, playingVoice: !m.playingVoice } : m));
-                          setTimeout(() => setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, playingVoice: false } : m)), 4000);
+                          if (playingMessageId === msg.id && currentAudioRef.current) {
+                            if (!currentAudioRef.current.paused) {
+                              currentAudioRef.current.pause();
+                              setVoiceState('paused');
+                              setPlayingMessageId(null);
+                            } else {
+                              currentAudioRef.current.play();
+                              setVoiceState('playing');
+                              setPlayingMessageId(msg.id);
+                            }
+                          } else {
+                            playTTS(msg.text, msg.id);
+                          }
                         }}
-                        className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-lg ${msg.playingVoice ? 'text-blue-400 bg-blue-400/10' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                        className={`flex items-center gap-1 text-xs transition-colors px-2 py-1 rounded-lg ${playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing') ? 'text-blue-400 bg-blue-400/10' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                       >
-                        {msg.playingVoice ? (
+                        {playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing') ? (
                           <>
                             <div className="flex gap-0.5 h-3 items-end">
                               {[...Array(4)].map((_, i) => <span key={i} className="wave-bar text-blue-400" style={{ height: '10px' }} />)}
                             </div>
-                            <span>Playing…</span>
+                            <span>{voiceState === 'processing' ? 'Loading…' : 'Playing…'}</span>
                           </>
                         ) : (
                           <>
@@ -437,15 +566,15 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                   </div>
                   <p className="text-blue-400 text-sm font-medium animate-pulse">Listening…</p>
                   <div className="flex gap-2">
-                    <button onClick={() => setVoiceState('idle')} className="text-xs text-slate-400 hover:text-white border border-white/15 px-3 py-1.5 rounded-lg">Cancel</button>
-                    <button onClick={() => { setVoiceState('processing'); setTimeout(() => { setVoiceState('idle'); sendMessage('Enakku tailoring business start panna loan venum.', true); }, 1500); }} className="text-xs text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg">Stop</button>
+                    <button onClick={handleCancelRecording} className="text-xs text-slate-400 hover:text-white border border-white/15 px-3 py-1.5 rounded-lg">Cancel</button>
+                    <button onClick={handleStopRecording} className="text-xs text-white bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg">Stop</button>
                   </div>
                 </>
               )}
               {voiceState === 'processing' && (
                 <>
                   <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                  <p className="text-slate-300 text-sm">Processing your voice…</p>
+                  <p className="text-slate-300 text-sm">Processing voice…</p>
                 </>
               )}
               {voiceState === 'playing' && (
@@ -455,8 +584,23 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                   </div>
                   <p className="text-emerald-400 text-sm font-medium">Playing response…</p>
                   <div className="flex gap-2">
-                    <button onClick={() => setVoiceState('paused')} className="text-xs text-white border border-white/15 px-3 py-1.5 rounded-lg">Pause</button>
-                    <button onClick={() => setVoiceState('idle')} className="text-xs text-slate-400 hover:text-white border border-white/15 px-3 py-1.5 rounded-lg">Close</button>
+                    <button
+                      onClick={() => {
+                        if (currentAudioRef.current) {
+                          if (!currentAudioRef.current.paused) {
+                            currentAudioRef.current.pause();
+                            setVoiceState('paused');
+                          } else {
+                            currentAudioRef.current.play();
+                            setVoiceState('playing');
+                          }
+                        }
+                      }}
+                      className="text-xs text-white border border-white/15 px-3 py-1.5 rounded-lg"
+                    >
+                      {currentAudioRef.current && currentAudioRef.current.paused ? 'Resume' : 'Pause'}
+                    </button>
+                    <button onClick={stopAudioPlayback} className="text-xs text-slate-400 hover:text-white border border-white/15 px-3 py-1.5 rounded-lg">Close</button>
                   </div>
                 </>
               )}
