@@ -44,8 +44,10 @@ export interface UserProfile {
   id?: string;
   name: string;
   age?: number;
+  gender?: 'Male' | 'Female' | 'Other' | string;
   category?: 'General' | 'SC' | 'ST' | 'OBC' | 'EWS' | 'Minorities' | 'Women' | 'Ex-Servicemen' | string;
   annualIncome?: number | string;
+  occupation?: string;
   locationType?: 'urban' | 'rural' | 'semi-urban';
   city?: string;
   state?: string;
@@ -144,6 +146,8 @@ export interface AIMessage {
   isVoice?: boolean;
   schemeCards?: AISchemeCard[];
   progressSteps?: AgentProgressStep[];
+  usedProfileFields?: string[];
+  missingProfileFields?: { field: string; label: string; actionText?: string }[];
   processing?: boolean;
   playingVoice?: boolean;
   audioUrl?: string;

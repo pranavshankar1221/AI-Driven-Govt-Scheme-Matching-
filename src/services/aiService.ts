@@ -22,6 +22,8 @@ export interface AIChatRequest {
   message: string;
   conversationId?: string;
   userProfile?: UserProfile;
+  profileContext?: Partial<UserProfile>;
+  relevantProfileFields?: string[];
   pageContext?: AIPageContext;
   isVoiceInput?: boolean;
   history?: Pick<AIMessage, 'role' | 'text'>[];
@@ -38,6 +40,8 @@ export interface AIChatResponse {
   progressSteps?: AgentProgressStep[];
   schemeCards?: AISchemeCard[];
   partnerMatches?: PartnerMatch[];
+  usedProfileFields?: string[];
+  missingProfileFields?: { field: string; label: string; actionText?: string }[];
   audioUrl?: string;
 }
 

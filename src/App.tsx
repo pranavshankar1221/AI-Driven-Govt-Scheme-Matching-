@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Page } from './types';
 import { schemes } from './data/schemes';
+import { ProfileProvider } from './context/ProfileContext';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -61,42 +62,44 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-full flex flex-col" style={{ background: '#0b1629', color: '#e2e8f0', fontFamily: 'Inter, sans-serif' }}>
-      {!noNav.includes(currentPage) && (
-        <Navbar {...navProps} isLoggedIn={isLoggedIn} />
-      )}
+    <ProfileProvider>
+      <div className="min-h-full flex flex-col" style={{ background: '#0b1629', color: '#e2e8f0', fontFamily: 'Inter, sans-serif' }}>
+        {!noNav.includes(currentPage) && (
+          <Navbar {...navProps} isLoggedIn={isLoggedIn} />
+        )}
 
-      <main className="flex-1">
-        {renderPage()}
-      </main>
+        <main className="flex-1">
+          {renderPage()}
+        </main>
 
-      {!noFooter.includes(currentPage) && (
-        <Footer navigate={navigate} />
-      )}
+        {!noFooter.includes(currentPage) && (
+          <Footer navigate={navigate} />
+        )}
 
-      {/* Global floating buttons */}
-      <FloatingButtons
-        onAIOpen={() => setAiOpen(true)}
-        onCallOpen={() => setCallOpen(true)}
-      />
-
-      {/* AI Assistant modal */}
-      {aiOpen && (
-        <AIAssistant
-          onClose={() => setAiOpen(false)}
-          navigate={navigate}
-          currentPage={currentPage}
-          selectedScheme={currentPage === 'scheme-details' || currentPage === 'eligibility' || currentPage === 'calculator' || currentPage === 'documents' || currentPage === 'guidance' ? selectedScheme : undefined}
+        {/* Global floating buttons */}
+        <FloatingButtons
+          onAIOpen={() => setAiOpen(true)}
+          onCallOpen={() => setCallOpen(true)}
         />
-      )}
 
-      {/* Voice Call modal */}
-      {callOpen && (
-        <VoiceCall
-          onClose={() => setCallOpen(false)}
-          onContinueInChat={() => { setCallOpen(false); setAiOpen(true); }}
-        />
-      )}
-    </div>
+        {/* AI Assistant modal */}
+        {aiOpen && (
+          <AIAssistant
+            onClose={() => setAiOpen(false)}
+            navigate={navigate}
+            currentPage={currentPage}
+            selectedScheme={currentPage === 'scheme-details' || currentPage === 'eligibility' || currentPage === 'calculator' || currentPage === 'documents' || currentPage === 'guidance' ? selectedScheme : undefined}
+          />
+        )}
+
+        {/* Voice Call modal */}
+        {callOpen && (
+          <VoiceCall
+            onClose={() => setCallOpen(false)}
+            onContinueInChat={() => { setCallOpen(false); setAiOpen(true); }}
+          />
+        )}
+      </div>
+    </ProfileProvider>
   );
 }
