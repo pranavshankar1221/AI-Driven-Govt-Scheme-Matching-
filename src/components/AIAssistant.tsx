@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import type { Page, Scheme } from '../types';
-import type { VoiceState, Message, SchemeCard, UserProfile, AgentProgressStep } from '../types/ai';
+import type { VoiceState, Message, AgentProgressStep } from '../types/ai';
 import { detectLanguage } from '../services/languageDetector';
-import { useProfile, type RelevantProfileResult } from '../context/ProfileContext';
+import { useProfile } from '../context/ProfileContext';
+import { aiService } from '../services/aiService';
 import AIAgentProgress from './ai/AIAgentProgress';
 import AISchemeCard from './ai/AISchemeCard';
 
@@ -12,204 +13,6 @@ interface Props {
   currentPage: Page;
   selectedScheme?: Scheme;
 }
-
-const mockResponses: Record<string, { text: string; cards?: SchemeCard[] }> = {
-  tailoring: {
-    text: `Sure! உங்கள் tailoring business-க்கு பொருத்தமான government schemes-ஐ பார்க்கலாம்.\n\nஉங்கள் requirement மற்றும் saved profile-ஐ analyze செய்தேன். இந்த schemes மிகவும் suitable-ஆக இருக்கும்:`,
-    cards: [
-      {
-        id: 'pmegp',
-        name: 'Prime Minister Employment Generation Programme (PMEGP)',
-        match: 94,
-        eligibility: 'Eligible',
-        why: 'Tailoring qualifies as a micro manufacturing enterprise. 35% capital subsidy is available for SC/ST and special category entrepreneurs.',
-        assistance: 'Up to ₹25 Lakhs | 35% Capital Subsidy',
-        explanation: {
-          summary: 'Tailoring qualifies as a micro-manufacturing enterprise eligible for capital subsidy.',
-          matchedCriteria: [
-            'Income criteria matched: No upper ceiling',
-            'Category matched: SC category eligible for 35% special subsidy',
-            'Purpose matched: Micro-enterprise tailoring setup',
-            'Location supported: Coimbatore urban branch network',
-          ],
-          disclaimer: 'Guidance based on available information. Final eligibility is subject to official verification.',
-        },
-      },
-      {
-        id: 'mudra',
-        name: 'Pradhan Mantri MUDRA Yojana (PMMY)',
-        match: 88,
-        eligibility: 'Eligible',
-        why: 'Your business fits the Kishore category (₹50K–₹5L). No collateral or third-party guarantee required.',
-        assistance: 'Up to ₹5 Lakhs | Zero Collateral',
-        explanation: {
-          summary: 'Working capital tier fits ₹3 Lakhs loan requirement without collateral.',
-          matchedCriteria: [
-            'Purpose matched: Small business trade and tailoring equipment',
-            'Tier matched: Kishore (₹50,000 to ₹5,00,000)',
-            'Zero collateral or third-party guarantee required',
-          ],
-          disclaimer: 'Guidance based on available information. Final eligibility is subject to official verification.',
-        },
-      },
-      {
-        id: 'standup',
-        name: 'Stand-Up India Scheme',
-        match: 72,
-        eligibility: 'Likely Eligible',
-        why: 'Special bank financing from ₹10 Lakhs to ₹1 Crore for SC/ST entrepreneurs setting up a greenfield enterprise.',
-        assistance: '₹10L to ₹1 Crore | 75% Coverage',
-        explanation: {
-          summary: 'High loan ceiling for SC/ST or women entrepreneurs starting greenfield ventures.',
-          matchedCriteria: [
-            'Category matched: SC category applicant',
-            'Activity matched: Manufacturing & service unit eligible',
-          ],
-          missingInformation: [
-            'Greenfield status: Enterprise must be a first-time venture to qualify',
-          ],
-          disclaimer: 'Guidance based on available information. Final eligibility is subject to official verification.',
-        },
-      },
-    ],
-  },
-  loan: {
-    text: `I can help you find suitable loan schemes. Based on your query, here are the top matching government loan programmes:`,
-    cards: [
-      {
-        id: 'mudra',
-        name: 'PM MUDRA Yojana',
-        match: 92,
-        eligibility: 'Eligible',
-        why: 'Easiest access — no collateral, minimal documents. Kishore/Tarun tier fits your requirement.',
-        assistance: 'Up to ₹10 Lakhs | Low Interest',
-        explanation: {
-          summary: 'Institutional micro-credit for non-corporate micro/small enterprises.',
-          matchedCriteria: [
-            'Purpose matched: Working capital and asset creation',
-            'Simplified documentation pathway',
-          ],
-          disclaimer: 'Guidance based on available information. Final eligibility is subject to official verification.',
-        },
-      },
-      {
-        id: 'pmegp',
-        name: 'PMEGP',
-        match: 85,
-        eligibility: 'Eligible',
-        why: 'Suitable for new enterprise. 25–35% capital subsidy reduces effective loan burden.',
-        assistance: 'Up to ₹25 Lakhs | 25-35% Subsidy',
-        explanation: {
-          summary: 'Credit-linked subsidy programme by Ministry of MSME.',
-          matchedCriteria: [
-            'Subsidy matched: Up to 35% margin money assistance',
-            'Bank credit matched: 90-95% project cost',
-          ],
-          disclaimer: 'Guidance based on available information. Final eligibility is subject to official verification.',
-        },
-      },
-    ],
-  },
-  eligibility: {
-    text: `To check your eligibility accurately, I need a few details:\n\n1. **Age** — How old are you?\n2. **Category** — SC / ST / OBC / General?\n3. **Location** — Rural or Urban?\n4. **Business type** — What kind of business do you want to start?\n5. **Annual income** — Approximate household income?\n\nYou can share these details and I'll give you a personalized eligibility report.`,
-  },
-  document: {
-    text: `Here are the commonly required documents for most government business schemes:\n\n**Identity & Address**\n• Aadhaar Card\n• PAN Card\n• Voter ID / Passport (any one)\n\n**Income & Category**\n• Income Certificate (from Tahsildar)\n• Caste Certificate (SC/ST/OBC)\n• BPL Card (if applicable)\n\n**Business**\n• Project Report / Business Plan\n• Bank Account (6 months statements)\n• Experience Certificate (if any)\n\n**Photos**\n• 2 passport-size photographs\n\nWould you like a specific checklist for a particular scheme?`,
-  },
-  emi: {
-    text: `I can help you calculate your EMI. For a ₹3 Lakh loan:\n\n**At 8% interest for 36 months:**\n• Monthly EMI: **₹9,403**\n• Total Interest: **₹38,508**\n• Total Repayment: **₹3,38,508**\n\n**With PMEGP subsidy (25%):**\n• Effective loan: ₹2,25,000\n• Monthly EMI: **₹7,052**\n• Subsidy saves you: ₹75,000\n\nWould you like me to open the full Financial Calculator for detailed projections?`,
-  },
-  partner: {
-    text: `Based on your location (Coimbatore), here are the nearest authorized partners for scheme applications:\n\n**Top 3 Nearby Partners:**\n\n📍 **Canara Bank — Main Branch** (0.8 km)\nSchemes: PMEGP, MUDRA, Stand-Up India\nMon–Fri: 10 AM – 4 PM\n\n📍 **State Bank of India — City Centre** (1.2 km)\nSchemes: All major schemes\nMon–Fri: 10 AM – 4 PM\n\n📍 **District Industries Centre — Coimbatore** (2.1 km)\nSchemes: PMEGP, KVIC\nMon–Fri: 10 AM – 5:30 PM\n\nShould I show you the full Partner Locator map?`,
-  },
-};
-
-const getAIResponse = (
-  text: string,
-  currentPage: string,
-  scheme?: Scheme,
-  profile?: UserProfile,
-  profileContextResult?: RelevantProfileResult
-): {
-  text: string;
-  cards?: SchemeCard[];
-  usedProfileFields?: string[];
-  missingProfileFields?: { field: string; label: string; actionText?: string }[];
-} => {
-  const lower = text.toLowerCase();
-  const isTailoring = lower.includes('tailoring') || lower.includes('silai') || lower.includes('தையல்') || lower.includes('thozhil');
-  const isLoan = lower.includes('loan') || lower.includes('கடன்') || lower.includes('ரூபாய்') || lower.includes('lakh') || lower.includes('lacs');
-  const isEligib = lower.includes('eligib') || lower.includes('யோகியம்') || lower.includes('patra');
-  const isDoc = lower.includes('document') || lower.includes('papers') || lower.includes('ஆவணம்');
-  const isEmi = lower.includes('emi') || lower.includes('calculat') || lower.includes('monthly');
-  const isPartner = lower.includes('partner') || lower.includes('bank') || lower.includes('office') || lower.includes('nearby');
-
-  if (isTailoring) {
-    const profileSummary = profile ? ` (${profile.category} Category, ${profile.city} ${profile.locationType === 'urban' ? 'Urban' : 'Rural'}, Annual Income: ${profile.annualIncome})` : '';
-    return {
-      text: `Sure! உங்கள் saved profile${profileSummary} அடிப்படையில் tailoring business schemes-ஐ analyze செய்தேன்.\n\nஉங்கள் requirement மற்றும் profile-க்கு இந்த schemes மிகவும் suitable-ஆக இருக்கும்:`,
-      cards: mockResponses.tailoring.cards,
-      usedProfileFields: profileContextResult?.relevantFieldLabels.length ? profileContextResult.relevantFieldLabels : ['Category', 'Annual income', 'Occupation', 'Location'],
-    };
-  }
-
-  if (isLoan) {
-    const locStr = profile?.city ? ` in ${profile.city}` : '';
-    return {
-      text: `Based on your profile${locStr} (${profile?.category || 'General'} Category, Income: ${profile?.annualIncome || 'Under ₹3L'}), here are the top matching government loan programmes:`,
-      cards: mockResponses.loan.cards,
-      usedProfileFields: profileContextResult?.relevantFieldLabels.length ? profileContextResult.relevantFieldLabels : ['Category', 'Annual income', 'Location'],
-    };
-  }
-
-  if (isEligib) {
-    if (profile && profile.annualIncome && profile.category) {
-      return {
-        text: `Based on the information in your saved profile (**${profile.name}**, Age ${profile.age}, **${profile.category}** Category, Annual Income: **${profile.annualIncome}**, Location: **${profile.city}** Urban), you appear **likely eligible** for several central and state welfare programmes.\n\n• **PMEGP:** Likely Eligible (Micro enterprise / ${profile.category} subsidy tier)\n• **MUDRA:** Likely Eligible (Kishore tier)\n• **Stand-Up India:** ${profile.category === 'SC' || profile.category === 'ST' ? 'Likely Eligible (SC category matched)' : 'Needs Review'}\n\n*Note: Sahaya AI provides guidance only — final approval is granted by implementing agencies.*`,
-        cards: mockResponses.tailoring.cards?.slice(0, 2),
-        usedProfileFields: ['Category', 'Annual income', 'Occupation', 'Location'],
-      };
-    }
-    return {
-      text: `To check your eligibility accurately, I need your annual household income.`,
-      missingProfileFields: profileContextResult?.missingFields.length ? profileContextResult.missingFields : [{ field: 'annualIncome', label: 'Annual Income', actionText: 'Enter Income' }],
-    };
-  }
-
-  if (isDoc) {
-    return {
-      text: mockResponses.document.text,
-      usedProfileFields: profile?.category ? ['Category', 'Available documents'] : undefined,
-    };
-  }
-
-  if (isEmi) {
-    return {
-      text: mockResponses.emi.text,
-      usedProfileFields: profile?.annualIncome ? ['Annual income', 'Loan requirement'] : undefined,
-    };
-  }
-
-  if (isPartner) {
-    const cityName = profile?.city || 'Coimbatore';
-    return {
-      text: `Based on your location (**${cityName}**), here are the nearest authorized partners for scheme applications:\n\n📍 **Canara Bank — Main Branch** (0.8 km)\nSchemes: PMEGP, MUDRA, Stand-Up India\nMon–Fri: 10 AM – 4 PM\n\n📍 **State Bank of India — City Centre** (1.2 km)\nSchemes: All major schemes\nMon–Fri: 10 AM – 4 PM\n\n📍 **District Industries Centre — ${cityName}** (2.1 km)\nSchemes: PMEGP, KVIC\nMon–Fri: 10 AM – 5:30 PM\n\nShould I show you the full Partner Locator map?`,
-      usedProfileFields: ['Location'],
-    };
-  }
-
-  if (currentPage === 'scheme-details' && scheme) {
-    return {
-      text: `You're viewing **${scheme.name}**. Based on your profile (${profile?.category || 'General'}, ${profile?.city || 'Coimbatore'}), I can help you check criteria eligibility, calculate financial assistance, or find nearby application partners.`,
-      usedProfileFields: profile ? ['Category', 'Location'] : undefined,
-    };
-  }
-
-  return {
-    text: `I understand you're asking about government schemes and assistance. Based on your saved profile (${profile?.name || 'Ravi Kumar'}, ${profile?.city || 'Tamil Nadu'}), could you tell me more about:\n\n• What kind of business or purpose?\n• Your approximate assistance amount needed?\n\nThis will help me find the most suitable schemes for you.`,
-    usedProfileFields: profile ? ['Location'] : undefined,
-  };
-};
 
 export default function AIAssistant({ onClose, navigate, currentPage, selectedScheme }: Props) {
   const { profile, getRelevantContext } = useProfile();
@@ -247,7 +50,7 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
     }
   }, [currentPage, selectedScheme]);
 
-  const sendMessage = (text: string, isVoice = false) => {
+  const sendMessage = async (text: string, isVoice = false) => {
     if (!text.trim()) return;
     const detected = detectLanguage(text);
     const contextResult = getRelevantContext(text);
@@ -300,9 +103,16 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       }
     }, 450);
 
-    setTimeout(() => {
+    try {
+      const response = await aiService.sendChatMessage({
+        message: text,
+        userProfile: profile,
+        profileContext: contextResult.relevantContext,
+        relevantProfileFields: contextResult.relevantFieldLabels,
+        pageContext: currentPage === 'scheme-details' && selectedScheme ? { page: currentPage, scheme: selectedScheme } : undefined,
+      });
+
       clearInterval(stepInterval);
-      const response = getAIResponse(text, currentPage, selectedScheme, profile, contextResult);
       const completedSteps = initialSteps.map(s => ({ ...s, status: 'completed' as const }));
 
       setMessages(prev =>
@@ -311,7 +121,7 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
             ? {
                 ...m,
                 text: response.text,
-                schemeCards: response.cards,
+                schemeCards: response.schemeCards,
                 usedProfileFields: response.usedProfileFields,
                 missingProfileFields: response.missingProfileFields,
                 progressSteps: completedSteps,
@@ -321,7 +131,20 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
         )
       );
       if (isVoice) setVoiceState('playing');
-    }, 2400);
+    } catch {
+      clearInterval(stepInterval);
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === thinkingMsg.id
+            ? {
+                ...m,
+                text: 'Sorry, I encountered an issue connecting to the AI service. Please try again.',
+                processing: false,
+              }
+            : m
+        )
+      );
+    }
   };
 
   const handleSend = () => { if (input.trim()) sendMessage(input); };

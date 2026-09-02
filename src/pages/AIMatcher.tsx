@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { NavProps } from '../types';
-import { schemes } from '../data/schemes';
+import type { MatchedSchemeResult } from '../types/api';
+import { schemeService } from '../services/schemeService';
 
 type Step = 'form' | 'matching' | 'results';
 
@@ -12,27 +13,41 @@ const matchingSteps = [
   'Ranking by best match…',
 ];
 
-const matchedSchemes = [
-  { ...schemes[0], match: 94, eligibility: 'Eligible' as const, why: 'Tailoring qualifies as micro manufacturing. Your category and location earn 35% subsidy in rural areas.' },
-  { ...schemes[1], match: 88, eligibility: 'Eligible' as const, why: 'MUDRA Kishore tier fits your ₹50K–₹5L requirement. No collateral needed. Minimal documentation.' },
-  { ...schemes[2], match: 72, eligibility: 'Likely Eligible' as const, why: 'If you belong to SC/ST category or are a woman entrepreneur, this gives ₹10L–₹1Cr with 75% coverage.' },
-  { ...schemes[3], match: 65, eligibility: 'Needs Review' as const, why: 'Income qualification check required. Provides free skill training and interest subsidy.' },
-];
-
 export default function AIMatcher({ navigate }: NavProps) {
   const [step, setStep] = useState<Step>('form');
   const [matchStep, setMatchStep] = useState(0);
   const [form, setForm] = useState({ purpose: '', location: 'urban', age: '', income: '', category: 'General', business: '', amount: '' });
+  const [matches, setMatches] = useState<MatchedSchemeResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const startMatching = () => {
+  const startMatching = async () => {
     setStep('matching');
     setMatchStep(0);
-    matchingSteps.forEach((_, i) => {
-      setTimeout(() => {
-        setMatchStep(i);
-        if (i === matchingSteps.length - 1) setTimeout(() => setStep('results'), 800);
-      }, i * 900);
-    });
+    setError(null);
+
+    const stepTimer = setInterval(() => {
+      setMatchStep(prev => (prev < matchingSteps.length - 1 ? prev + 1 : prev));
+    }, 600);
+
+    try {
+      const res = await schemeService.matchSchemes({
+        purpose: form.purpose || 'Tailoring Business',
+        location: form.location,
+        category: form.category,
+        income: form.income,
+        age: form.age ? Number(form.age) : undefined,
+        business: form.business,
+        amount: form.amount,
+      });
+
+      clearInterval(stepTimer);
+      setMatches(res.matches || []);
+      setStep('results');
+    } catch (err) {
+      clearInterval(stepTimer);
+      setError(err instanceof Error ? err.message : 'Backend matching service unavailable.');
+      setStep('form');
+    }
   };
 
   if (step === 'matching') {
@@ -71,7 +86,7 @@ export default function AIMatcher({ navigate }: NavProps) {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-white" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Your Scheme Matches</h1>
-            <p className="text-slate-400 text-sm">Based on your profile · {matchedSchemes.length} schemes found</p>
+            <p className="text-slate-400 text-sm">Based on your profile · {matches.length} schemes found</p>
           </div>
         </div>
 
@@ -79,9 +94,9 @@ export default function AIMatcher({ navigate }: NavProps) {
         <div className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-4 mb-6 flex flex-wrap gap-3">
           {[
             { label: 'Purpose', value: form.purpose || 'Tailoring Business' },
-            { label: 'Location', value: 'Coimbatore, Urban' },
+            { label: 'Location', value: form.location === 'urban' ? 'Urban' : 'Rural' },
             { label: 'Category', value: form.category },
-            { label: 'Amount', value: form.amount ? `₹${form.amount}` : '₹3 Lakhs' },
+            { label: 'Amount', value: form.amount ? `₹${form.amount}` : 'Not specified' },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center gap-2 bg-[#132040] px-3 py-1.5 rounded-xl">
               <span className="text-xs text-slate-500">{label}:</span>
@@ -91,48 +106,57 @@ export default function AIMatcher({ navigate }: NavProps) {
         </div>
 
         {/* Results */}
-        <div className="space-y-4">
-          {matchedSchemes.map((scheme, i) => (
-            <div key={scheme.id} className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-5 sm:p-6 hover:border-blue-500/30 transition-all animate-fade-in-up" style={{ animationDelay: `${i * 0.1}s` }}>
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {i === 0 && <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full">Best Match</span>}
-                    <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${scheme.eligibility === 'Eligible' ? 'bg-emerald-400/15 text-emerald-400' : scheme.eligibility === 'Likely Eligible' ? 'bg-blue-400/15 text-blue-400' : 'bg-amber-400/15 text-amber-400'}`}>{scheme.eligibility}</span>
-                    <span className="text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">{scheme.type}</span>
-                  </div>
-                  <h3 className="text-white font-bold text-lg mb-1" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{scheme.name}</h3>
-                  <p className="text-xs text-slate-500 mb-3">{scheme.organization}</p>
-                  <div className="bg-[#132040] rounded-xl p-3 mb-3">
-                    <p className="text-xs text-slate-500 mb-1">Why it matches</p>
-                    <p className="text-sm text-slate-200">{scheme.why}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    <span className="text-amber-400 text-sm font-medium">{scheme.financialAssistance}</span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-1 sm:items-end">
-                  <div className="relative w-20 h-20">
-                    <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                      <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                      <circle cx="40" cy="40" r="34" fill="none" stroke={i === 0 ? '#10b981' : i === 1 ? '#3b82f6' : '#f59e0b'} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 34 * scheme.match / 100} ${2 * Math.PI * 34 * (1 - scheme.match / 100)}`} strokeLinecap="round" />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-lg font-bold text-white">{scheme.match}%</span>
+        {matches.length === 0 ? (
+          <div className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-8 text-center text-slate-400">
+            <p className="text-base mb-2">No matching schemes returned by the backend.</p>
+            <button onClick={() => setStep('form')} className="text-sm bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl">
+              Refine Search Parameters
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {matches.map((scheme, i) => (
+              <div key={scheme.id} className="bg-[#0f1f3d] border border-white/8 rounded-2xl p-5 sm:p-6 hover:border-blue-500/30 transition-all animate-fade-in-up" style={{ animationDelay: `${i * 0.1}s` }}>
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {i === 0 && <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full">Best Match</span>}
+                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${scheme.eligibility === 'Eligible' ? 'bg-emerald-400/15 text-emerald-400' : scheme.eligibility === 'Likely Eligible' ? 'bg-blue-400/15 text-blue-400' : 'bg-amber-400/15 text-amber-400'}`}>{scheme.eligibility}</span>
+                      <span className="text-xs text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">{scheme.type}</span>
+                    </div>
+                    <h3 className="text-white font-bold text-lg mb-1" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{scheme.name}</h3>
+                    <p className="text-xs text-slate-500 mb-3">{scheme.organization}</p>
+                    <div className="bg-[#132040] rounded-xl p-3 mb-3">
+                      <p className="text-xs text-slate-500 mb-1">Why it matches</p>
+                      <p className="text-sm text-slate-200">{scheme.why}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      <span className="text-amber-400 text-sm font-medium">{scheme.financialAssistance}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-500">match score</p>
+                  <div className="flex flex-col items-center gap-1 sm:items-end">
+                    <div className="relative w-20 h-20">
+                      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                        <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                        <circle cx="40" cy="40" r="34" fill="none" stroke={i === 0 ? '#10b981' : i === 1 ? '#3b82f6' : '#f59e0b'} strokeWidth="6" strokeDasharray={`${2 * Math.PI * 34 * scheme.match / 100} ${2 * Math.PI * 34 * (1 - scheme.match / 100)}`} strokeLinecap="round" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-lg font-bold text-white">{scheme.match}%</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500">match score</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/5">
+                  <button onClick={() => navigate('scheme-details', scheme.id)} className="flex-1 min-w-24 text-sm bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-medium transition-colors text-center">View Scheme</button>
+                  <button onClick={() => navigate('eligibility', scheme.id)} className="flex-1 min-w-24 text-sm border border-white/15 hover:border-white/30 text-slate-300 hover:text-white py-2.5 rounded-xl transition-colors text-center">Check Eligibility</button>
+                  <button onClick={() => navigate('calculator', scheme.id)} className="flex-1 min-w-24 text-sm border border-white/15 hover:border-white/30 text-slate-300 hover:text-white py-2.5 rounded-xl transition-colors text-center">Calculate</button>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/5">
-                <button onClick={() => navigate('scheme-details', scheme.id)} className="flex-1 min-w-24 text-sm bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-medium transition-colors text-center">View Scheme</button>
-                <button onClick={() => navigate('eligibility', scheme.id)} className="flex-1 min-w-24 text-sm border border-white/15 hover:border-white/30 text-slate-300 hover:text-white py-2.5 rounded-xl transition-colors text-center">Check Eligibility</button>
-                <button onClick={() => navigate('calculator', scheme.id)} className="flex-1 min-w-24 text-sm border border-white/15 hover:border-white/30 text-slate-300 hover:text-white py-2.5 rounded-xl transition-colors text-center">Calculate</button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button onClick={() => setStep('form')} className="text-sm border border-white/15 hover:border-white/30 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl transition-colors">Refine Search</button>
@@ -151,6 +175,15 @@ export default function AIMatcher({ navigate }: NavProps) {
       </div>
 
       <div className="bg-[#0f1f3d] border border-white/8 rounded-3xl p-6 space-y-5">
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/25 rounded-2xl p-4 text-xs text-red-300 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-400 font-bold flex items-center justify-center flex-shrink-0 text-[10px]">!</span>
+              <span>{error}</span>
+            </div>
+            <button onClick={() => setError(null)} className="text-slate-400 hover:text-white text-xs px-1">✕</button>
+          </div>
+        )}
         <div>
           <label className="text-sm text-slate-300 font-medium block mb-2">What do you want to do?</label>
           <input value={form.purpose} onChange={e => setForm({ ...form, purpose: e.target.value })} placeholder="e.g. Start a tailoring business, get a home loan…" className="w-full bg-[#132040] border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 outline-none focus:border-blue-500/50 transition-colors" />
