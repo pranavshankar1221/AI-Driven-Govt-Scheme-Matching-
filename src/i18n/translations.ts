@@ -22,7 +22,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'mai', label: 'Maithili', native: 'मैथिली' },
 ];
 
-export type TranslationKey = keyof typeof translations.en;
+export type TranslationKey = keyof typeof translations.en | (string & {});
 
 export const translations = {
   "en": {
@@ -39,7 +39,7 @@ export const translations = {
     "welfarePlatform": "Welfare Scheme Matching Platform",
     "profile": "Profile",
     "dashboard": "Dashboard",
-    "heroBadge": "National Public Scheme Discovery & Credit Advisory Platform",
+    "heroBadge": "Official Government Citizen Service",
     "heroTitle": "Find Government Welfare Schemes & Subsidies for Your Needs",
     "heroSubtitle": "A single unified portal to discover government assistance, verify eligibility criteria, prepare documents, and apply at authorized nodal banks.",
     "searchPlaceholder": "Search by scheme name, trade, or need (e.g. tailoring, mudra, pmegp)…",

@@ -40,27 +40,16 @@ const getStoredAuth = (): boolean => {
   }
 };
 
-const getStoredPage = (authenticated: boolean): Page => {
-  if (!authenticated) {
-    try {
-      const saved = sessionStorage.getItem('sahaya_current_page') as Page;
-      if (saved === 'login') return 'login';
-    } catch {
-      // ignore
-    }
-    return 'home';
-  }
-
-  // If authenticated, NEVER return 'home' or 'login'
+const getStoredPage = (_authenticated: boolean): Page => {
   try {
     const saved = sessionStorage.getItem('sahaya_current_page') as Page;
-    if (saved && saved !== 'home' && saved !== 'login') {
+    if (saved && saved !== 'login') {
       return saved;
     }
   } catch {
     // ignore
   }
-  return 'catalog';
+  return 'home';
 };
 
 const getStoredSchemeId = (): string => {
@@ -91,8 +80,8 @@ export default function App() {
     schemeId?: string,
     sourceContext?: { fromPage?: Page; fromLabel?: string }
   ) => {
-    // If user is logged in and attempts to navigate to 'home' or 'login', redirect to 'catalog'
-    if (isLoggedIn && (page === 'home' || page === 'login')) {
+    // If user is logged in and attempts to navigate to 'login', redirect to 'catalog'
+    if (isLoggedIn && page === 'login') {
       page = 'catalog';
     }
 
@@ -254,7 +243,7 @@ export default function App() {
   }
 
   const renderPage = () => {
-    const pageToRender = isLoggedIn && (currentPage === 'home' || currentPage === 'login')
+    const pageToRender = isLoggedIn && currentPage === 'login'
       ? 'catalog'
       : currentPage;
 
@@ -272,7 +261,7 @@ export default function App() {
       case 'conversations':  return <ConversationHistory {...navProps} />;
       case 'faq':            return <HelpFAQ {...navProps} />;
       case 'profile':        return <Profile {...navProps} />;
-      default:               return isLoggedIn ? <SchemesCatalog {...navProps} /> : <Home {...navProps} />;
+      default:               return <Home {...navProps} />;
     }
   };
 
@@ -284,7 +273,7 @@ export default function App() {
             {/* Topmost Navbar */}
             <Navbar
               {...navProps}
-              currentPage={isLoggedIn && (currentPage === 'home' || currentPage === 'login') ? 'catalog' : currentPage}
+              currentPage={isLoggedIn && currentPage === 'login' ? 'catalog' : currentPage}
               isLoggedIn={isLoggedIn}
               onLogout={handleLogout}
               onAIOpen={handleAIOpen}
@@ -295,13 +284,15 @@ export default function App() {
               {renderPage()}
             </main>
 
-            <Footer navigate={navigate} />
+            {currentPage === 'home' && <Footer navigate={navigate} />}
 
-            {/* Global floating buttons */}
-            <FloatingButtons
-              onAIOpen={handleAIOpen}
-              onCallOpen={handleCallOpen}
-            />
+            {/* Global floating buttons — ONLY render after user logs in */}
+            {isLoggedIn && (
+              <FloatingButtons
+                onAIOpen={handleAIOpen}
+                onCallOpen={handleCallOpen}
+              />
+            )}
 
             {/* AI Assistant modal */}
             {aiOpen && (

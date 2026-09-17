@@ -186,6 +186,8 @@ export interface AIMessage {
   processing?: boolean;
   playingVoice?: boolean;
   audioUrl?: string;
+  selectedLang?: string;
+  translatedText?: string;
 }
 
 /**

@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { NavProps, Scheme } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { schemeService } from '../services/schemeService';
 
 interface Props extends NavProps {
   scheme: Scheme;
 }
 
-const allDocs = [
+const defaultDocs = [
   { category: 'Identity & Address Proofs', docs: [
     { name: 'Aadhaar Card', required: true, note: 'Self-attested photocopy with original for biometric verification' },
     { name: 'PAN Card', required: true, note: 'Mandatory for bank loan disbursements exceeding ₹50,000' },
@@ -41,12 +42,43 @@ export default function RequiredDocuments({
 }: Props) {
   const { t, getLocalizedScheme } = useLanguage();
   const locScheme = getLocalizedScheme(scheme);
+  const [docList, setDocList] = useState(defaultDocs);
+
+  useEffect(() => {
+    let mounted = true;
+    if (scheme?.id) {
+      schemeService.getSchemeDocuments(scheme.id).then(res => {
+        if (!mounted) return;
+        if (res.mandatoryDocuments && res.mandatoryDocuments.length > 0) {
+          setDocList([
+            {
+              category: 'Mandatory Scheme Documents',
+              docs: res.mandatoryDocuments.map(d => ({
+                name: d.name,
+                required: true,
+                note: d.description || 'Verified requirement for scheme submission',
+              })),
+            },
+            ...(res.optionalDocuments && res.optionalDocuments.length > 0 ? [{
+              category: 'Optional / Supporting Documents',
+              docs: res.optionalDocuments.map(d => ({
+                name: d.name,
+                required: false,
+                note: d.description || 'Recommended supporting document',
+              })),
+            }] : []),
+          ]);
+        }
+      }).catch(err => console.warn('Failed to load documents from backend, using default checklist:', err));
+    }
+    return () => { mounted = false; };
+  }, [scheme?.id]);
 
   const [checkedDocs, setCheckedDocs] = useState<Set<string>>(new Set(['Aadhaar Card', 'Income Certificate', 'Cancelled Bank Cheque', 'Recent Passport Photographs (4 Copies)']));
   const toggle = (name: string) => setCheckedDocs(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
 
-  const totalRequired = allDocs.flatMap(c => c.docs).filter(d => d.required).length;
-  const checkedRequired = allDocs.flatMap(c => c.docs).filter(d => d.required && checkedDocs.has(d.name)).length;
+  const totalRequired = docList.flatMap(c => c.docs).filter(d => d.required).length || 1;
+  const checkedRequired = docList.flatMap(c => c.docs).filter(d => d.required && checkedDocs.has(d.name)).length;
   const progress = Math.round((checkedRequired / totalRequired) * 100);
 
   const handleBackClick = () => {
@@ -116,7 +148,7 @@ export default function RequiredDocuments({
 
       {/* Document Sections */}
       <div className="space-y-4">
-        {allDocs.map((cat, ci) => (
+        {docList.map((cat, ci) => (
           <div key={ci} className="theme-card rounded-md p-4 sm:p-5 border theme-border shadow-xs">
             <h2 className="text-xs font-bold uppercase tracking-wider theme-text-main mb-3 flex items-center gap-1.5" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
               <span>📁</span>

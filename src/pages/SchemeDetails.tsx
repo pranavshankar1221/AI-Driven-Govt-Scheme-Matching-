@@ -93,18 +93,45 @@ export default function SchemeDetails({
         <p className="theme-text-muted text-xs sm:text-sm mb-5 font-medium">{locScheme.organization}</p>
 
         {/* Highlights Grid */}
-        <div className="grid sm:grid-cols-3 gap-3 mb-5">
-          <div className="theme-card-subtle border theme-border rounded p-3">
-            <p className="text-[10px] theme-text-muted uppercase tracking-wider font-semibold mb-0.5">{t('financialAssistance')}</p>
-            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 font-bold leading-snug">{locScheme.financialAssistance}</p>
+        <div className="grid sm:grid-cols-3 gap-3.5 mb-5">
+          <div className="theme-card-subtle border theme-border rounded-md p-3.5 flex flex-col justify-between">
+            <div>
+              <p className="text-[10px] theme-text-muted uppercase tracking-wider font-bold mb-1">{t('financialAssistance')}</p>
+              {locScheme.financialAssistance.includes('|') ? (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {locScheme.financialAssistance.split('|').map((item, idx) => (
+                    <span key={idx} className="text-[11px] font-semibold theme-text-main bg-slate-200/70 dark:bg-white/10 px-2 py-0.5 rounded border theme-border">
+                      {item.trim()}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs sm:text-sm theme-text-main font-bold leading-snug">{locScheme.financialAssistance}</p>
+              )}
+            </div>
           </div>
-          <div className="theme-card-subtle border theme-border rounded p-3">
-            <p className="text-[10px] theme-text-muted uppercase tracking-wider font-semibold mb-0.5">{t('targetGroups')}</p>
-            <p className="text-xs sm:text-sm text-[#004b87] dark:text-sky-300 font-semibold">{locScheme.categories.slice(0, 3).join(', ')}{locScheme.categories.length > 3 ? '…' : ''}</p>
+
+          <div className="theme-card-subtle border theme-border rounded-md p-3.5 flex flex-col justify-between">
+            <div>
+              <p className="text-[10px] theme-text-muted uppercase tracking-wider font-bold mb-1">{t('targetGroups')}</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {locScheme.categories.map(cat => (
+                  <span key={cat} className="text-[10px] font-semibold text-[#004b87] dark:text-sky-300 bg-blue-500/10 px-2 py-0.5 rounded">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="theme-card-subtle border theme-border rounded p-3">
-            <p className="text-[10px] theme-text-muted uppercase tracking-wider font-semibold mb-0.5">{t('ageLimit')}</p>
-            <p className="text-xs sm:text-sm text-emerald-700 dark:text-emerald-400 font-semibold">{locScheme.minAge} – {locScheme.maxAge} {t('years')}</p>
+
+          <div className="theme-card-subtle border theme-border rounded-md p-3.5 flex flex-col justify-between">
+            <div>
+              <p className="text-[10px] theme-text-muted uppercase tracking-wider font-bold mb-1">{t('ageLimit')}</p>
+              <div className="mt-1 inline-flex items-center gap-1.5 text-xs sm:text-sm theme-text-main font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>{locScheme.minAge} – {locScheme.maxAge} {t('years')}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -163,12 +190,44 @@ export default function SchemeDetails({
       {/* Tab Panels */}
       <div className="theme-card rounded-md p-6 shadow-sm border theme-border">
         {tab === 'Overview' && (
-          <div className="space-y-4">
-            <h2 className="text-base font-bold theme-text-main" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{t('descriptionAndPurpose')}</h2>
-            <p className="theme-text-secondary text-xs sm:text-sm leading-relaxed">{locScheme.description}</p>
-            <div className="theme-card-subtle rounded p-4 border theme-border">
-              <h3 className="text-[#004b87] dark:text-sky-300 font-bold mb-1 text-xs uppercase tracking-wider">{t('checkEligibility')}</h3>
-              <p className="theme-text-main text-xs sm:text-sm leading-relaxed">{locScheme.eligibilitySummary}</p>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-base font-bold theme-text-main mb-2" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                {t('descriptionAndPurpose')}
+              </h2>
+              <p className="theme-text-secondary text-xs sm:text-sm leading-relaxed whitespace-pre-line">
+                {locScheme.description}
+              </p>
+            </div>
+
+            {/* Key Highlights Section */}
+            {locScheme.benefits && locScheme.benefits.length > 0 && (
+              <div className="pt-2">
+                <h3 className="text-xs font-bold theme-text-main uppercase tracking-wider mb-2.5">
+                  Key Scheme Features & Financial Benefits
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  {locScheme.benefits.map((benefit, idx) => (
+                    <div key={idx} className="flex items-start gap-2 theme-card-subtle rounded p-3 border theme-border">
+                      <span className="w-4 h-4 rounded-full bg-[#004b87] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        ✓
+                      </span>
+                      <span className="theme-text-main text-xs font-medium leading-normal">{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Eligibility Summary Box */}
+            <div className="theme-card-subtle rounded-md p-4 border theme-border">
+              <h3 className="theme-text-main font-bold mb-1.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <span>📋</span>
+                <span>{t('checkEligibility')}</span>
+              </h3>
+              <p className="theme-text-main text-xs sm:text-sm leading-relaxed">
+                {locScheme.eligibilitySummary}
+              </p>
             </div>
           </div>
         )}

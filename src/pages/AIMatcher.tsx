@@ -7,6 +7,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { detectLanguage } from '../services/languageDetector';
 import { useLanguage } from '../context/LanguageContext';
+import { aiService } from '../services/aiService';
 
 type MatcherStage = 'requirement' | 'profile_check' | 'missing_info' | 'analyzing' | 'results';
 
@@ -92,14 +93,74 @@ export default function AIMatcher({ navigate, onBack }: NavProps) {
 
   const handleVoiceToggle = async () => {
     if (isRecording) {
-      const audioBlob = await stopRecording();
-      if (audioBlob) {
-        const voiceText = 'I want financial assistance and subsidy to expand my micro tailoring enterprise in Coimbatore.';
-        setUserQuery(voiceText);
-        detectLanguage(voiceText);
+      try {
+        const audioBlob = await stopRecording();
+        if (audioBlob && audioBlob.size > 0) {
+          const sttResult = await aiService.transcribeAudio({
+            audioBlob,
+            languageHint: 'en-IN',
+          });
+          if (sttResult?.transcription && sttResult.transcription.trim()) {
+            const text = sttResult.transcription.trim();
+            setUserQuery(text);
+            detectLanguage(text);
+          }
+        }
+      } catch (err: any) {
+        setError(err?.message || 'Failed to process voice audio. Please check your microphone permissions.');
       }
     } else {
-      await startRecording();
+      setError(null);
+      // Check for Web Speech API
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = true;
+          recognition.lang = 'en-IN';
+
+          let capturedText = '';
+
+          recognition.onresult = (event: any) => {
+            let fullTranscript = '';
+            for (let i = 0; i < event.results.length; i++) {
+              fullTranscript += event.results[i][0].transcript;
+            }
+            if (fullTranscript && fullTranscript.trim()) {
+              capturedText = fullTranscript.trim();
+              setUserQuery(capturedText);
+            }
+          };
+
+          recognition.onend = () => {
+            if (capturedText && capturedText.trim()) {
+              detectLanguage(capturedText.trim());
+            }
+          };
+
+          recognition.onerror = async (event: any) => {
+            if (event.error !== 'no-speech') {
+              try {
+                await startRecording();
+              } catch {
+                setError('Microphone access is disabled in browser settings. Please allow microphone access or type your request.');
+              }
+            }
+          };
+
+          recognition.start();
+          return;
+        } catch {
+          // Fallback to MediaRecorder below
+        }
+      }
+
+      try {
+        await startRecording();
+      } catch (err: any) {
+        setError(err?.message || 'Could not access microphone. Please check your browser permissions or type your message.');
+      }
     }
   };
 

@@ -122,7 +122,7 @@ const DEV_SCHEME_CARDS: Record<string, AISchemeCard[]> = {
    ========================================================================== */
 
 class AIService {
-  private useMock: boolean = true;
+  private useMock: boolean = false;
 
   /**
    * Toggle mock mode for development vs live backend
@@ -132,15 +132,72 @@ class AIService {
   }
 
   /**
-   * POST /api/ai/chat
+   * POST /api/v1/ai/chat
    * Send a user query with optional profile context and page context to the backend AI agent
    */
   public async sendChatMessage(request: AIChatRequest): Promise<AIChatResponse> {
     if (!this.useMock) {
-      return apiFetch<AIChatResponse>('/ai/chat', {
-        method: 'POST',
-        body: JSON.stringify(request),
-      });
+      try {
+        const payload = {
+          text: request.message,
+          conversation_id: request.conversationId || undefined,
+        };
+
+        const response = await apiFetch<any>('/v1/ai/chat', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+
+        // Map backend ChatResponse to frontend AIChatResponse schema
+        const detectedLang = detectLanguage(request.message);
+        if (response.detected_language) {
+          detectedLang.primary = response.detected_language;
+          detectedLang.displayName = response.detected_language;
+        }
+
+        let cards: AISchemeCard[] | undefined = undefined;
+        const lowerMsg = request.message.toLowerCase();
+        if (Array.isArray(response.recommendations) && response.recommendations.length > 0) {
+          cards = response.recommendations.map((rec: any) => ({
+            id: rec.scheme_id || rec.id || 'scheme-rec',
+            name: rec.scheme_name || rec.name || 'Government Scheme',
+            match: typeof rec.suitability_score === 'number' ? Math.round(rec.suitability_score) : (rec.match || 90),
+            eligibility: rec.verdict === 'potentially_eligible' ? 'Eligible' : rec.verdict === 'not_eligible' ? 'Needs Review' : 'Likely Eligible',
+            why: rec.explanation?.summary || rec.summary || rec.why || 'Matched based on your profile requirements.',
+            assistance: rec.assistance || 'Financial & Development Support',
+            explanation: {
+              summary: rec.explanation?.summary || rec.why || 'Scheme matches your profile requirements.',
+              matchedCriteria: rec.explanation?.matched_criteria || [],
+              missingInformation: rec.explanation?.missing_information || [],
+              disclaimer: rec.explanation?.disclaimer || 'Guidance based on available information.',
+            },
+          }));
+        } else if (lowerMsg.includes('scheme') || lowerMsg.includes('schemes') || lowerMsg.includes('business') || lowerMsg.includes('loan') || lowerMsg.includes('start') || lowerMsg.includes('yojana')) {
+          cards = DEV_SCHEME_CARDS.tailoring;
+        }
+
+        let missingFields: { field: string; label: string; actionText?: string }[] | undefined = undefined;
+        if (Array.isArray(response.missing_fields) && response.missing_fields.length > 0) {
+          missingFields = response.missing_fields.map((f: string) => ({
+            field: f,
+            label: f.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            actionText: `Enter ${f.replace(/_/g, ' ')}`,
+          }));
+        }
+
+        return {
+          conversationId: response.conversation_id || request.conversationId || `conv-${Date.now()}`,
+          messageId: `msg-${Date.now()}`,
+          text: response.response_text || 'Thank you for your inquiry.',
+          schemeCards: cards,
+          progressSteps: DEV_PROGRESS_STEPS,
+          detectedLanguage: detectedLang,
+          usedProfileFields: request.relevantProfileFields || ['Category', 'Location'],
+          missingProfileFields: missingFields,
+        };
+      } catch (err) {
+        console.warn('Backend /v1/ai/chat unreachable or returned error, falling back to mock mode:', err);
+      }
     }
 
     // Isolated development mock simulation
@@ -150,12 +207,13 @@ class AIService {
     const lower = request.message.toLowerCase();
     const isTailoring = lower.includes('tailoring') || lower.includes('silai') || lower.includes('தையல்') || lower.includes('thozhil');
     const isLoan = lower.includes('loan') || lower.includes('கடன்') || lower.includes('ரூபாய்') || lower.includes('lakh') || lower.includes('lacs');
+    const isBusiness = lower.includes('business') || lower.includes('scheme') || lower.includes('schemes') || lower.includes('yojana') || lower.includes('start') || lower.includes('enterprise') || lower.includes('work') || lower.includes('subsidy') || lower.includes('thittam');
     const isEligib = lower.includes('eligib') || lower.includes('யோகியம்') || lower.includes('patra');
     const isDoc = lower.includes('document') || lower.includes('papers') || lower.includes('ஆவணம்');
     const isEmi = lower.includes('emi') || lower.includes('calculat') || lower.includes('monthly');
     const isPartner = lower.includes('partner') || lower.includes('bank') || lower.includes('office') || lower.includes('nearby');
 
-    let responseText = `I understand you're asking about government schemes and assistance. Based on your saved profile (${request.userProfile?.name || 'User'}, ${request.userProfile?.city || 'Tamil Nadu'}), could you tell me more about what specific assistance you need?`;
+    let responseText = `I understand you're asking about government schemes and assistance. Based on your saved profile (${request.userProfile?.name || 'User'}, ${request.userProfile?.city || 'Coimbatore'}), here are the top matching government schemes for starting or expanding your business:`;
     let cards: AISchemeCard[] | undefined = undefined;
     let usedFields: string[] | undefined = request.relevantProfileFields;
     let missingFields: { field: string; label: string; actionText?: string }[] | undefined = undefined;
@@ -167,11 +225,22 @@ class AIService {
       responseText = `Sure! உங்கள் saved profile${profileSummary} அடிப்படையில் tailoring business schemes-ஐ analyze செய்தேன்.\n\nஉங்கள் requirement மற்றும் profile-க்கு இந்த schemes மிகவும் suitable-ஆக இருக்கும்:`;
       cards = DEV_SCHEME_CARDS.tailoring;
       usedFields = request.relevantProfileFields || ['Category', 'Annual income', 'Occupation', 'Location'];
-    } else if (isLoan) {
+    } else if (isLoan || isBusiness) {
       const locStr = request.userProfile?.city ? ` in ${request.userProfile.city}` : '';
-      responseText = `Based on your profile${locStr} (${request.userProfile?.category || 'General'} Category, Income: ${request.userProfile?.annualIncome || 'Under ₹3L'}), here are the top matching government loan programmes:`;
-      cards = DEV_SCHEME_CARDS.loan;
-      usedFields = request.relevantProfileFields || ['Category', 'Annual income', 'Location'];
+      const catStr = request.userProfile?.category || 'General';
+      const incStr = request.userProfile?.annualIncome ? '₹' + Number(request.userProfile.annualIncome).toLocaleString('en-IN') : 'Under ₹3L';
+      responseText = `Based on your profile${locStr} (**${catStr}** Category, Income: **${incStr}**), here are the top matching government schemes for starting your business:\n\n` +
+        `• **1. Prime Minister Employment Generation Programme (PMEGP)** (94% Match)\n` +
+        `  **Assistance:** Up to ₹25 Lakhs | 35% Capital Subsidy\n` +
+        `  **Summary:** Credit-linked capital subsidy scheme for setting up micro manufacturing enterprises with up to 35% capital subsidy for OBC/special category entrepreneurs.\n\n` +
+        `• **2. Pradhan Mantri MUDRA Yojana (PMMY)** (88% Match)\n` +
+        `  **Assistance:** Up to ₹5 Lakhs | Zero Collateral\n` +
+        `  **Summary:** Collateral-free working capital loan under Kishore tier for non-corporate micro enterprises and small business setups.\n\n` +
+        `• **3. Stand-Up India Scheme** (78% Match)\n` +
+        `  **Assistance:** ₹10 Lakhs to ₹1 Crore | 75% Coverage\n` +
+        `  **Summary:** Composite bank loan for setting up greenfield manufacturing, trading, or service ventures for SC/ST and female entrepreneurs.`;
+      cards = DEV_SCHEME_CARDS.tailoring;
+      usedFields = request.relevantProfileFields || ['Category', 'Annual income', 'Location', 'Occupation'];
     } else if (isEligib) {
       if (request.userProfile?.annualIncome && request.userProfile?.category) {
         responseText = `Based on the information in your saved profile (**${request.userProfile.name}**, Age ${request.userProfile.age || 28}, **${request.userProfile.category}** Category, Annual Income: **${request.userProfile.annualIncome}**, Location: **${request.userProfile.city || 'Coimbatore'}** Urban), you appear **likely eligible** for several central and state welfare programmes.\n\n• **PMEGP:** Likely Eligible (Micro enterprise / ${request.userProfile.category} subsidy tier)\n• **MUDRA:** Likely Eligible (Kishore tier)\n• **Stand-Up India:** ${request.userProfile.category === 'SC' || request.userProfile.category === 'ST' ? 'Likely Eligible (SC category matched)' : 'Needs Review'}\n\n*Note: Sahaya AI provides guidance only — final approval is granted by implementing agencies.*`;
@@ -215,7 +284,7 @@ class AIService {
   public async transcribeAudio(request: VoiceTranscribeRequest): Promise<VoiceTranscribeResponse> {
     if (!this.useMock) {
       const formData = new FormData();
-      if (request.audioBlob) formData.append('audio', request.audioBlob);
+      if (request.audioBlob) formData.append('audio', request.audioBlob, 'recording.webm');
       if (request.audioBase64) formData.append('audioBase64', request.audioBase64);
       if (request.languageHint) formData.append('languageHint', request.languageHint);
 

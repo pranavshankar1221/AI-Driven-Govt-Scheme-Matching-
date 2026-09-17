@@ -6,6 +6,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useLanguage } from '../context/LanguageContext';
 import { aiService } from '../services/aiService';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import { SUPPORTED_VOICE_LANGUAGES, translateText, detectScriptLanguage } from '../services/translator';
 import AIAgentProgress from './ai/AIAgentProgress';
 import AISchemeCard from './ai/AISchemeCard';
 
@@ -18,22 +19,26 @@ interface Props {
 
 export default function AIAssistant({ onClose, navigate, currentPage, selectedScheme }: Props) {
   const { profile, getRelevantContext } = useProfile();
-  const { t } = useLanguage();
+  const { t, language, setLanguage, languages } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '0',
       role: 'ai',
-      text: `Hello! I'm your Sahaya AI Assistant. I can help you discover government schemes, verify eligibility, calculate financial assistance, identify required documents, locate authorized channel partners, and guide your application.\n\nHow can I assist you today?`,
+      text: `Hello! I'm your Sahaya AI Assistant. I can help you discover government schemes, verify eligibility, calculate financial assistance, identify required documents, locate authorized channel partners, and guide your application.`,
       timestamp: new Date(),
     },
   ]);
   const [input, setInput] = useState('');
   const [voiceState, setVoiceState] = useState<VoiceState>('idle');
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [activeMsgLangMenuId, setActiveMsgLangMenuId] = useState<string | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   const {
     isRecording,
@@ -52,6 +57,13 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       }
       currentAudioRef.current = null;
     }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // Ignore synthesis cancel error
+      }
+    }
     setPlayingMessageId(null);
     setVoiceState('idle');
   }, []);
@@ -62,6 +74,21 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       stopAudioPlayback();
     };
   }, [cancelRecording, stopAudioPlayback]);
+
+  // Pre-load speech synthesis voices on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const loadVoices = () => {
+        try {
+          window.speechSynthesis.getVoices();
+        } catch {
+          // Ignore
+        }
+      };
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,10 +109,94 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
     }
   }, [currentPage, selectedScheme]);
 
-  const playTTS = useCallback(async (text: string, messageId: string) => {
+  // Multilingual Web Speech API (speechSynthesis) with support for ALL Indic languages
+  const playWebSpeech = useCallback((text: string, messageId: string, speechLang?: string) => {
+    const code = speechLang || language;
+
+    const cleanText = text
+      .replace(/[#*`_~]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/•/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanText) {
+      setVoiceState('idle');
+      setPlayingMessageId(null);
+      return;
+    }
+
+    const langTagMap: Record<string, string> = {
+      en: 'en-IN', hi: 'hi-IN', ta: 'ta-IN', te: 'te-IN',
+      bn: 'bn-IN', mr: 'mr-IN', gu: 'gu-IN', kn: 'kn-IN',
+      ml: 'ml-IN', pa: 'pa-IN', or: 'or-IN', ur: 'ur-IN',
+      as: 'as-IN', ks: 'ks-IN', mai: 'mai-IN',
+    };
+
+    const targetLang = langTagMap[code] || 'en-IN';
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+        
+        const voices = window.speechSynthesis.getVoices();
+        const primaryCode = (code || targetLang.split('-')[0]).toLowerCase();
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = targetLang;
+        utterance.rate = 0.92;
+        utterance.pitch = 1.0;
+
+        if (voices && voices.length > 0) {
+          const matchedVoice = voices.find(v => {
+            const vLang = (v.lang || '').toLowerCase();
+            const vName = (v.name || '').toLowerCase();
+            return (
+              vLang === targetLang.toLowerCase() ||
+              vLang.startsWith(primaryCode) ||
+              vName.includes(primaryCode) ||
+              vName.includes(code.toLowerCase())
+            );
+          });
+
+          if (matchedVoice) {
+            utterance.voice = matchedVoice;
+          }
+        }
+
+        utterance.onstart = () => {
+          setVoiceState('playing');
+          setPlayingMessageId(messageId);
+        };
+
+        utterance.onend = () => {
+          stopAudioPlayback();
+        };
+
+        utterance.onerror = (err) => {
+          console.warn('Speech synthesis error:', err);
+          stopAudioPlayback();
+        };
+
+        setVoiceState('playing');
+        setPlayingMessageId(messageId);
+        window.speechSynthesis.speak(utterance);
+        return;
+      } catch (err) {
+        console.warn('SpeechSynthesis exception:', err);
+        stopAudioPlayback();
+      }
+    } else {
+      stopAudioPlayback();
+    }
+  }, [language, stopAudioPlayback]);
+
+  const playTTS = useCallback(async (text: string, messageId: string, customLang?: string) => {
     stopAudioPlayback();
     setPlayingMessageId(messageId);
     setVoiceState('processing');
+
+    const speechLang = customLang || language;
 
     try {
       const ttsResponse = await aiService.synthesizeSpeech({
@@ -101,8 +212,7 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       }
 
       if (!audioSrc) {
-        setVoiceState('idle');
-        setPlayingMessageId(null);
+        playWebSpeech(text, messageId, speechLang);
         return;
       }
 
@@ -119,14 +229,41 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       };
 
       audio.onerror = () => {
-        stopAudioPlayback();
+        playWebSpeech(text, messageId, speechLang);
       };
 
       await audio.play();
     } catch {
-      stopAudioPlayback();
+      playWebSpeech(text, messageId, speechLang);
     }
-  }, [stopAudioPlayback]);
+  }, [stopAudioPlayback, language, playWebSpeech]);
+
+  // Translate message text and trigger TTS in that specific language
+  const handleTranslateAndSpeakMsg = async (msgId: string, targetLangCode: string) => {
+    setActiveMsgLangMenuId(null);
+    const targetMsg = messages.find(m => m.id === msgId);
+    if (!targetMsg) return;
+
+    let translated = targetMsg.text;
+    if (targetLangCode !== 'en') {
+      translated = await translateText(targetMsg.text, targetLangCode);
+    }
+
+    setMessages(prev =>
+      prev.map(m =>
+        m.id === msgId
+          ? {
+              ...m,
+              selectedLang: targetLangCode,
+              translatedText: translated,
+            }
+          : m
+      )
+    );
+
+    // Speak translated response using voice matching targetLangCode
+    playTTS(translated, msgId, targetLangCode);
+  };
 
   const sendMessage = async (text: string, isVoice = false) => {
     if (!text.trim()) return;
@@ -194,12 +331,19 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
       clearInterval(stepInterval);
       const completedSteps = initialSteps.map(s => ({ ...s, status: 'completed' as const }));
 
+      let translatedText: string | undefined = undefined;
+      if (language !== 'en') {
+        translatedText = await translateText(response.text, language);
+      }
+
       setMessages(prev =>
         prev.map(m =>
           m.id === thinkingMsg.id
             ? {
                 ...m,
                 text: response.text,
+                translatedText: translatedText && translatedText !== response.text ? translatedText : undefined,
+                selectedLang: language !== 'en' ? language : undefined,
                 schemeCards: response.schemeCards,
                 usedProfileFields: response.usedProfileFields,
                 missingProfileFields: response.missingProfileFields,
@@ -210,9 +354,8 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
         )
       );
 
-      // If voice message input, automatically synthesize and play AI response speech
       if (isVoice && response.text) {
-        playTTS(response.text, thinkingMsgId);
+        playTTS(translatedText || response.text, thinkingMsgId, language);
       }
     } catch {
       clearInterval(stepInterval);
@@ -272,18 +415,104 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
   const handleVoiceMic = async () => {
     stopAudioPlayback();
 
-    if (isRecording || voiceState === 'listening') {
-      await handleStopRecording();
+    if (voiceState === 'listening') {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch {}
+        recognitionRef.current = null;
+        setVoiceState('idle');
+      } else {
+        await handleStopRecording();
+      }
       return;
     }
 
     if (voiceState === 'processing') return;
 
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      try {
+        const recognition = new SpeechRecognition();
+        recognitionRef.current = recognition;
+        recognition.continuous = false;
+        recognition.interimResults = true;
+
+        const langTagMap: Record<string, string> = {
+          en: 'en-IN', hi: 'hi-IN', ta: 'ta-IN', te: 'te-IN',
+          bn: 'bn-IN', mr: 'mr-IN', gu: 'gu-IN', kn: 'kn-IN',
+          ml: 'ml-IN', pa: 'pa-IN', ur: 'ur-IN'
+        };
+        recognition.lang = langTagMap[language] || 'en-IN';
+
+        let capturedText = '';
+
+        recognition.onstart = () => {
+          setVoiceState('listening');
+        };
+
+        recognition.onresult = (event: any) => {
+          let fullTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            fullTranscript += event.results[i][0].transcript;
+          }
+          if (fullTranscript && fullTranscript.trim()) {
+            capturedText = fullTranscript.trim();
+            setInput(capturedText);
+          }
+        };
+
+        recognition.onend = () => {
+          setVoiceState('idle');
+          recognitionRef.current = null;
+          if (capturedText && capturedText.trim()) {
+            sendMessage(capturedText.trim(), true);
+          }
+        };
+
+        recognition.onerror = async (event: any) => {
+          console.warn('Speech recognition notice:', event.error);
+          recognitionRef.current = null;
+          
+          if (event.error === 'no-speech') {
+            setVoiceState('idle');
+            return;
+          }
+
+          // Fallback to MediaRecorder for speech recognition errors
+          try {
+            setVoiceState('listening');
+            await startRecording();
+          } catch {
+            setVoiceState('idle');
+            const msg: Message = {
+              id: Date.now().toString(),
+              role: 'ai',
+              text: 'Microphone access is disabled in browser settings. Please allow microphone access or type your request.',
+              timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, msg]);
+          }
+        };
+
+        recognition.start();
+        return;
+      } catch {
+        // Fallback to MediaRecorder
+      }
+    }
+
     try {
       setVoiceState('listening');
       await startRecording();
-    } catch {
+    } catch (err: any) {
       setVoiceState('idle');
+      const errorMsg: Message = {
+        id: Date.now().toString(),
+        role: 'ai',
+        text: err?.message || 'Could not access microphone. Please check your browser permissions or type your message.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMsg]);
     }
   };
 
@@ -296,12 +525,11 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
     { label: 'Explain Recommendation', msg: 'Can you explain which scheme suits me best?' },
   ];
 
-  const sidebarLinks = [
-    { label: 'New Chat', icon: '✦', action: () => setMessages([{ id: '0', role: 'ai', text: "Hello! I'm your Sahaya AI Assistant. How can I help you today?", timestamp: new Date() }]) },
-    { label: 'Popular Schemes', icon: '◈', action: () => navigate('catalog') },
-    { label: 'Calculate EMI', icon: '◇', action: () => navigate('calculator') },
-    { label: 'Required Documents', icon: '◉', action: () => navigate('documents') },
-    { label: 'Find Nearby Partner', icon: '◎', action: () => navigate('partners') },
+  const welcomePrompts = [
+    'Tell me about PMEGP Loan & Subsidy Scheme',
+    'Eligibility criteria for Pradhan Mantri Awaas Yojana',
+    'Application process of Kisan Credit Scheme',
+    'Schemes for students & youth?',
   ];
 
   const renderText = (text: string) => {
@@ -313,18 +541,18 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
         <div key={pIdx} className="mb-2 last:mb-0 space-y-1">
           {lines.map((line, lIdx) => {
             if (line.startsWith('# ')) {
-              return <h3 key={lIdx} className="text-base font-bold text-white mt-2 mb-1">{line.slice(2)}</h3>;
+              return <h3 key={lIdx} className="text-base font-bold text-slate-900 dark:text-white mt-2 mb-1">{line.slice(2)}</h3>;
             }
             if (line.startsWith('## ')) {
-              return <h4 key={lIdx} className="text-sm font-semibold text-teal-300 mt-2 mb-1">{line.slice(3)}</h4>;
+              return <h4 key={lIdx} className="text-sm font-semibold text-[#004b87] dark:text-sky-300 mt-2 mb-1">{line.slice(3)}</h4>;
             }
             if (line.startsWith('### ')) {
-              return <h5 key={lIdx} className="text-xs font-semibold text-slate-200 mt-1.5 mb-0.5">{line.slice(4)}</h5>;
+              return <h5 key={lIdx} className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-1.5 mb-0.5">{line.slice(4)}</h5>;
             }
             if (line.startsWith('- ') || line.startsWith('* ')) {
               return (
-                <div key={lIdx} className="flex gap-2 text-xs text-slate-200 ml-1">
-                  <span className="text-teal-400 font-bold">•</span>
+                <div key={lIdx} className="flex gap-2 text-xs text-slate-800 dark:text-slate-200 ml-1">
+                  <span className="text-[#004b87] dark:text-sky-400 font-bold">•</span>
                   <span>{renderFormattedInline(line.slice(2))}</span>
                 </div>
               );
@@ -332,13 +560,13 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
             const numMatch = line.match(/^(\d+)\.\s(.*)/);
             if (numMatch) {
               return (
-                <div key={lIdx} className="flex gap-2 text-xs text-slate-200 ml-1">
-                  <span className="text-teal-400 font-semibold">{numMatch[1]}.</span>
+                <div key={lIdx} className="flex gap-2 text-xs text-slate-800 dark:text-slate-200 ml-1">
+                  <span className="text-[#004b87] dark:text-sky-400 font-semibold">{numMatch[1]}.</span>
                   <span>{renderFormattedInline(numMatch[2])}</span>
                 </div>
               );
             }
-            return <p key={lIdx} className="text-xs text-slate-200 leading-relaxed">{renderFormattedInline(line)}</p>;
+            return <p key={lIdx} className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed">{renderFormattedInline(line)}</p>;
           })}
         </div>
       );
@@ -349,252 +577,176 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
     const parts = str.split(/(\*\*.*?\*\*|\*.*?\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>;
+        const inner = part.slice(2, -2);
+        const isSchemeTitle = /\b(Programme|Yojana|Scheme|PMEGP|MUDRA|PMMY|Stand-Up|PMAY|PMFBY|DAY-NRLM)\b/i.test(inner) || /^\d+\./.test(inner);
+        if (isSchemeTitle) {
+          return (
+            <span key={i} className="inline-flex items-center gap-1 font-bold text-[#004b87] dark:text-sky-300 bg-blue-500/10 dark:bg-sky-400/15 px-2 py-0.5 rounded-lg border border-blue-500/20 dark:border-sky-400/30 my-0.5">
+              <span>🏛️</span>
+              <span>{inner}</span>
+            </span>
+          );
+        }
+        return <strong key={i} className="font-semibold text-[#004b87] dark:text-sky-300">{inner}</strong>;
       }
       if (part.startsWith('*') && part.endsWith('*')) {
-        return <em key={i} className="italic text-slate-400">{part.slice(1, -1)}</em>;
+        return <em key={i} className="italic text-slate-500 dark:text-slate-400">{part.slice(1, -1)}</em>;
       }
       return part;
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
       <div
-        className="w-full max-w-4xl h-[92vh] max-h-[760px] rounded-lg flex overflow-hidden shadow-2xl border theme-border theme-modal"
+        className={`w-full transition-all duration-300 rounded-3xl flex flex-col overflow-hidden shadow-2xl border theme-border theme-modal bg-white dark:bg-slate-900 ${
+          isFullScreen ? 'h-[98vh] max-h-none max-w-[98vw]' : 'max-w-2xl h-[88vh] max-h-[720px]'
+        }`}
       >
-        {/* Sidebar */}
-        <div className={`w-64 border-r theme-border flex flex-col justify-between transition-all duration-200 theme-card-subtle ${sidebarOpen ? 'block absolute inset-y-0 left-0 z-20 h-full shadow-2xl' : 'hidden sm:flex'}`}>
-          <div className="p-3 space-y-1">
-            <div className="flex items-center justify-between px-3 py-2 border-b theme-border pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded bg-[#004b87] flex items-center justify-center shadow-sm">
-                  <span className="text-white text-xs font-bold">S</span>
-                </div>
-                <div>
-                  <span className="theme-text-main font-bold text-xs block leading-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Sahaya AI</span>
-                  <span className="text-[10px] text-[#004b87] dark:text-sky-300 font-semibold">Citizen Helpdesk</span>
-                </div>
-              </div>
-              <button className="sm:hidden theme-text-muted hover:theme-text-main p-1" onClick={() => setSidebarOpen(false)}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-
-            <div className="pt-2">
-              {sidebarLinks.map(({ label, icon, action }) => (
-                <button
-                  key={label}
-                  onClick={() => {
-                    action();
-                    if (sidebarOpen) setSidebarOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs theme-text-muted hover:theme-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-all text-left font-medium"
-                >
-                  <span className="text-[#004b87] dark:text-sky-300">{icon}</span>
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="pt-3 mt-2 border-t theme-border">
-              <p className="text-[10px] theme-text-muted px-3 mb-2 uppercase tracking-wider font-semibold">Recent Consultations</p>
-              {['PMEGP loan enquiry', 'Tailoring business scheme', 'MUDRA eligibility check'].map(c => (
-                <button
-                  key={c}
-                  onClick={() => sendMessage(`Tell me more about ${c}`)}
-                  className="w-full text-left px-3 py-1.5 rounded text-xs theme-text-muted hover:theme-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-colors truncate"
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-
-            <div className="pt-3 mt-2 border-t theme-border">
-              <p className="text-[10px] theme-text-muted px-3 mb-2 uppercase tracking-wider font-semibold">Priority Schemes</p>
-              {[['PMEGP Subsidy', 'pmegp'], ['MUDRA Kishore', 'mudra'], ['Stand-Up India', 'standup'], ['PMAY Housing', 'pmay']].map(([name, id]) => (
-                <button
-                  key={id}
-                  onClick={() => navigate('scheme-details', id)}
-                  className="w-full text-left px-3 py-1.5 rounded text-xs theme-text-muted hover:text-[#004b87] dark:hover:text-sky-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors truncate font-medium"
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
+        {/* Header Bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b theme-border bg-slate-50/80 dark:bg-slate-900/90">
+          <div className="flex items-center gap-3">
+            <h2 className="font-extrabold text-xl tracking-tight text-[#004b87] dark:text-sky-400" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+              Sahaya AI
+            </h2>
+            <span className="bg-[#004b87]/10 dark:bg-sky-400/15 text-[#004b87] dark:text-sky-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-[#004b87]/20 dark:border-sky-400/30">
+              Chat
+            </span>
           </div>
 
-          {/* User profile preview */}
-          <div className="p-3 border-t theme-border theme-card-subtle">
-            <div className="flex items-center gap-2 p-2 rounded-md theme-card shadow-sm">
-              <div className="w-7 h-7 rounded bg-[#004b87] flex items-center justify-center flex-shrink-0 text-white text-xs font-bold">
-                {profile.name ? profile.name.split(' ').map(n => n[0]).join('') : 'RK'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="theme-text-main text-xs font-semibold truncate">{profile.name}</p>
-                  <span className="text-[9px] text-[#004b87] dark:text-sky-300 bg-blue-500/10 px-1 py-0.2 rounded font-medium">Active</span>
-                </div>
-                <p className="theme-text-muted text-[10px] truncate">{profile.city || 'Coimbatore'} · {profile.category || 'OBC'} · {profile.occupation || 'Tailoring'}</p>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            {/* Expand / Fullscreen Toggle Button */}
+            <button
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+              title={isFullScreen ? "Restore Window" : "Expand Fullscreen"}
+              aria-label="Toggle Fullscreen"
+            >
+              {isFullScreen ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9L4 4m0 0l5 0m-5 0l0 5m6 6l5 5m0 0l-5 0m5 0l0-5" /></svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+              )}
+            </button>
+
+            {/* Close Button */}
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Close Assistant"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
         </div>
 
-        {/* Main chat area */}
-        <div className="flex-1 flex flex-col min-w-0 theme-modal">
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-[#002244] bg-[#003366] text-white">
-            <div className="flex items-center gap-3">
-              <button className="sm:hidden text-slate-200 hover:text-white p-1" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
-              </button>
-              <div>
-                <h2 className="text-white font-bold text-sm tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
-                  Sahaya Citizen AI Helpdesk
-                </h2>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] text-slate-200 font-medium">National Public Scheme Guidance</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setMessages([{ id: '0', role: 'ai', text: "Session reset. How can I assist you with government welfare schemes today?", timestamp: new Date() }])}
-                className="text-xs text-slate-200 hover:text-white border border-white/20 px-2.5 py-1 rounded transition-colors hover:bg-white/10"
-              >
-                Reset
-              </button>
-              <button
-                onClick={onClose}
-                className="text-slate-200 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
-                aria-label="Close Helpdesk"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
-          </div>
 
-          {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5">
-            {messages.length === 1 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4 animate-fade-in">
-                {quickActions.map(({ label, msg }) => (
+
+        {/* Messages Feed */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 bg-white dark:bg-slate-900">
+          {/* Welcome Banner Card when starting chat */}
+          {messages.length <= 1 && (
+            <div className="bg-slate-50/90 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-3xl p-6 mb-4 shadow-sm animate-fade-in">
+              <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+                Sahaya AI
+              </h1>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-200 leading-relaxed mb-3">
+                Sahaya AI is a National Platform that aims to offer one-stop search and discovery of Government schemes.
+              </p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+                Hi! I am your assistant, here to help you find eligible government schemes and provide information on eligibility criteria, the application process, required documents, and more for various schemes.
+              </p>
+
+              {/* Vertical Prompt Buttons */}
+              <div className="space-y-3">
+                {welcomePrompts.map((prompt) => (
                   <button
-                    key={label}
-                    onClick={() => sendMessage(msg)}
-                    className="text-xs theme-text-main border theme-border hover:border-[#004b87] px-3 py-2 rounded-md transition-colors text-left theme-card-subtle shadow-sm font-medium"
+                    key={prompt}
+                    onClick={() => sendMessage(prompt)}
+                    className="w-full text-center text-xs font-medium text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-[#004b87] dark:hover:border-sky-400 hover:bg-blue-50/50 dark:hover:bg-sky-950/30 px-5 py-3.5 rounded-2xl transition-all shadow-xs"
                   >
-                    {label}
+                    {prompt}
                   </button>
                 ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2 animate-fade-in`}>
-                {msg.role === 'ai' && (
-                  <div className="w-7 h-7 rounded bg-[#004b87] flex items-center justify-center flex-shrink-0 mt-0.5 text-white text-xs font-bold shadow-sm">
-                    S
-                  </div>
+          {/* Chat Conversation Items */}
+          {messages.map(msg => (
+            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-3 animate-fade-in`}>
+              {msg.role === 'ai' && (
+                <div className="w-8 h-8 rounded-full bg-[#004b87] text-white flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold shadow">
+                  S
+                </div>
+              )}
+              <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-first' : ''}`}>
+                {msg.role === 'user' && msg.lang && (
+                  <p className="text-[10px] theme-text-muted text-right mb-0.5 mr-1">
+                    Detected: <span className="text-[#004b87] dark:text-sky-300 font-semibold">{msg.lang}</span>
+                    {msg.isVoice && <span className="ml-1 text-emerald-600 dark:text-emerald-400 font-medium">🎤 Voice</span>}
+                  </p>
                 )}
-                <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-first' : ''}`}>
-                  {msg.role === 'user' && msg.lang && (
-                    <p className="text-[10px] theme-text-muted text-right mb-0.5 mr-1">
-                      Detected: <span className="text-[#004b87] dark:text-sky-300 font-semibold">{msg.lang}</span>
-                      {msg.isVoice && <span className="ml-1 text-emerald-600 dark:text-emerald-400 font-medium">🎤 Voice</span>}
-                    </p>
-                  )}
-                  <div className={`rounded-md px-3.5 py-2.5 shadow-sm text-xs leading-relaxed ${
-                    msg.role === 'user'
-                      ? 'bg-[#004b87] text-white'
-                      : 'theme-card border theme-border'
-                  }`}>
-                    {msg.processing ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3.5 h-3.5 rounded-full border-2 border-[#004b87] dark:border-sky-400 border-t-transparent animate-spin" />
-                          <span className="text-xs font-semibold theme-text-main">Analyzing government scheme database…</span>
-                        </div>
-                        {msg.progressSteps && (
-                          <AIAgentProgress steps={msg.progressSteps} isComplete={false} />
-                        )}
+
+                <div className={`rounded-2xl px-4 py-3 shadow-xs text-xs leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-[#004b87] text-white rounded-tr-none'
+                    : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-900 dark:text-slate-100 rounded-tl-none shadow-sm'
+                }`}>
+                  {msg.processing ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full border-2 border-[#004b87] dark:border-sky-400 border-t-transparent animate-spin" />
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Evaluating scheme eligibility & requirements…</span>
                       </div>
-                    ) : (
-                      <div className="space-y-1">
-                        {msg.role === 'ai' && msg.usedProfileFields && msg.usedProfileFields.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1.5 px-2.5 py-1 mb-2 rounded bg-blue-500/10 border border-blue-500/20 text-[11px]">
-                            <span className="font-semibold text-[#004b87] dark:text-sky-300">Verified Profile Data Used:</span>
-                            <div className="flex flex-wrap gap-1 items-center">
-                              {msg.usedProfileFields.map(f => (
-                                <span key={f} className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.2 rounded">
-                                  ✓ {f}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {renderText(msg.text)}
-
-                        {msg.missingProfileFields && msg.missingProfileFields.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t theme-border">
-                            {msg.missingProfileFields.map(m => (
-                              <button
-                                key={m.field}
-                                onClick={() => sendMessage(`My ${m.label} is ₹2,40,000`)}
-                                className="text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-200 border border-amber-500/30 px-2.5 py-1 rounded transition-colors font-medium flex items-center gap-1"
-                              >
-                                <span>+</span> {m.actionText || `Provide ${m.label}`}
-                              </button>
+                      {msg.progressSteps && (
+                        <AIAgentProgress steps={msg.progressSteps} isComplete={false} />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {msg.role === 'ai' && msg.usedProfileFields && msg.usedProfileFields.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 px-3 py-1.5 mb-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px]">
+                          <span className="font-semibold text-[#004b87] dark:text-sky-300">Verified Profile Data Used:</span>
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {msg.usedProfileFields.map(f => (
+                              <span key={f} className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                ✓ {f}
+                              </span>
                             ))}
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Scheme recommendation cards */}
-                  {msg.schemeCards && msg.schemeCards.length > 0 && (
-                    <div className="mt-2.5 space-y-2.5">
-                      {msg.schemeCards.map((card, i) => (
-                        <div key={card.id}>
-                          <AISchemeCard card={card} onNavigate={navigate} isBestMatch={i === 0} />
                         </div>
-                      ))}
+                      )}
+
+                      {renderText(msg.translatedText || msg.text)}
                     </div>
                   )}
+                </div>
 
-                  {/* AI message speaker play action */}
-                  {msg.role === 'ai' && !msg.processing && (
-                    <div className="flex items-center gap-2 mt-1 ml-0.5">
+                {/* AI Audio Speaker Button + Per-Message Language Dropdown */}
+                {msg.role === 'ai' && !msg.processing && msg.text && (() => {
+                  const effectiveMsgLang = msg.selectedLang || detectScriptLanguage(msg.translatedText || msg.text) || language;
+                  return (
+                    <div className="flex items-center gap-2 mt-1.5 ml-1">
+                      {/* Listen / Speak Button */}
                       <button
                         onClick={() => {
-                          if (playingMessageId === msg.id && currentAudioRef.current) {
-                            if (!currentAudioRef.current.paused) {
-                              currentAudioRef.current.pause();
-                              setVoiceState('paused');
-                              setPlayingMessageId(null);
-                            } else {
-                              currentAudioRef.current.play();
-                              setVoiceState('playing');
-                              setPlayingMessageId(msg.id);
-                            }
+                          if (playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing')) {
+                            stopAudioPlayback();
                           } else {
-                            playTTS(msg.text, msg.id);
+                            playTTS(msg.translatedText || msg.text, msg.id, effectiveMsgLang);
                           }
                         }}
-                        className={`flex items-center gap-1 text-[11px] transition-colors px-2 py-0.5 rounded ${
+                        className={`flex items-center gap-1.5 text-xs transition-colors px-2.5 py-1 rounded-full ${
                           playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing')
                             ? 'text-[#004b87] dark:text-sky-300 bg-blue-500/15 border border-blue-500/30 font-semibold'
-                            : 'theme-text-muted hover:theme-text-main border border-transparent'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent'
                         }`}
                       >
                         {playingMessageId === msg.id && (voiceState === 'playing' || voiceState === 'processing') ? (
                           <>
                             <div className="w-2 h-2 rounded-full bg-[#004b87] dark:bg-sky-400 animate-ping" />
-                            <span>{voiceState === 'processing' ? 'Synthesizing…' : 'Playing Audio'}</span>
+                            <span>Reading Aloud…</span>
                           </>
                         ) : (
                           <>
@@ -603,107 +755,157 @@ export default function AIAssistant({ onClose, navigate, currentPage, selectedSc
                           </>
                         )}
                       </button>
+
+                      {/* Per-Message Language Selector Dropdown */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setActiveMsgLangMenuId(activeMsgLangMenuId === msg.id ? null : msg.id)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-full transition-colors shadow-xs"
+                          title="Translate text & change voice language"
+                        >
+                          <span>🌐</span>
+                          <span>
+                            {SUPPORTED_VOICE_LANGUAGES.find(l => l.code === effectiveMsgLang)?.native || 'English'}
+                          </span>
+                          <span className="text-[9px] text-slate-400">▼</span>
+                        </button>
+
+                        {activeMsgLangMenuId === msg.id && (
+                          <div className="absolute left-0 bottom-8 z-30 w-44 bg-white dark:bg-slate-800 border theme-border rounded-2xl shadow-xl py-1.5 max-h-48 overflow-y-auto">
+                            <p className="px-3.5 py-1 text-[9px] font-semibold theme-text-muted uppercase">Voice & Translation</p>
+                            {SUPPORTED_VOICE_LANGUAGES.map(lang => (
+                              <button
+                                key={lang.code}
+                                onClick={() => handleTranslateAndSpeakMsg(msg.id, lang.code)}
+                                className={`w-full text-left px-3.5 py-1.5 text-xs flex items-center justify-between hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors ${
+                                  effectiveMsgLang === lang.code ? 'font-bold text-[#004b87] dark:text-sky-400 bg-blue-50/50' : 'theme-text-main'
+                                }`}
+                              >
+                                <span>{lang.native}</span>
+                                <span className="text-[10px] theme-text-muted">{lang.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-
-                {msg.role === 'user' && (
-                  <div className="w-7 h-7 rounded bg-slate-700 text-white flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold shadow-sm">
-                    RK
-                  </div>
-                )}
+                  );
+                })()}
               </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
 
-          {/* Voice recording overlay */}
-          {voiceState !== 'idle' && (
-            <div className="mx-4 mb-3 theme-card rounded-md p-3.5 flex flex-col items-center gap-2.5 shadow-lg border theme-border">
-              {voiceState === 'listening' && (
-                <>
-                  <p className="text-red-600 dark:text-red-400 text-xs font-semibold animate-pulse flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-600" />
-                    <span>Microphone is active. Speak your question now…</span>
-                  </p>
-                  <div className="flex gap-2">
-                    <button onClick={handleCancelRecording} className="text-xs gov-btn-secondary px-3 py-1">Cancel</button>
-                    <button onClick={handleStopRecording} className="text-xs gov-btn-primary px-3.5 py-1">Done / Submit Voice</button>
-                  </div>
-                </>
-              )}
-              {voiceState === 'processing' && (
-                <>
-                  <div className="w-6 h-6 rounded-full border-2 border-[#004b87] dark:border-sky-400 border-t-transparent animate-spin" />
-                  <p className="theme-text-muted text-xs">Processing speech input with voice model…</p>
-                </>
-              )}
-              {voiceState === 'playing' && (
-                <>
-                  <p className="text-emerald-700 dark:text-emerald-400 text-xs font-semibold">Playing audio narration…</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        if (currentAudioRef.current) {
-                          if (!currentAudioRef.current.paused) {
-                            currentAudioRef.current.pause();
-                            setVoiceState('paused');
-                          } else {
-                            currentAudioRef.current.play();
-                            setVoiceState('playing');
-                          }
-                        }
-                      }}
-                      className="text-xs gov-btn-secondary px-3 py-1"
-                    >
-                      {currentAudioRef.current && currentAudioRef.current.paused ? 'Resume' : 'Pause'}
-                    </button>
-                    <button onClick={stopAudioPlayback} className="text-xs gov-btn-secondary px-3 py-1">Close</button>
-                  </div>
-                </>
+              {msg.role === 'user' && (
+                <div className="w-8 h-8 rounded-full bg-slate-700 text-white flex items-center justify-center flex-shrink-0 mt-0.5 text-xs font-bold shadow">
+                  RK
+                </div>
               )}
             </div>
-          )}
+          ))}
+          <div ref={bottomRef} />
+        </div>
 
-          {/* Input Bar */}
-          <div className="px-4 py-3 border-t theme-border theme-card">
-            <div className="flex items-center gap-2 theme-input rounded-md px-3 py-2 border theme-border">
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                placeholder="Ask in English, தமிழ், हिंदी or any Indian language…"
-                className="flex-1 bg-transparent theme-text-main text-xs sm:text-sm placeholder:theme-text-muted outline-none min-w-0"
-              />
+        {/* Bottom Input Box Container */}
+        <div className="p-4 sm:p-5 border-t theme-border bg-white dark:bg-slate-900">
+          <div className="relative flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-3 shadow-xs hover:border-slate-400 dark:hover:border-slate-600 focus-within:border-[#004b87] dark:focus-within:border-sky-400 transition-all">
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              placeholder="Type something..."
+              className="flex-1 bg-transparent text-slate-900 dark:text-white text-xs sm:text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none min-w-0 pr-2"
+            />
+
+            {/* Right Action Icons */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Voice Mic Button */}
               <button
                 onClick={handleVoiceMic}
-                className={`p-1.5 rounded transition-colors flex-shrink-0 ${
+                className={`p-2 rounded-full transition-all ${
                   voiceState === 'listening'
                     ? 'text-red-600 bg-red-500/20 animate-pulse'
-                    : 'theme-text-muted hover:text-[#004b87] hover:bg-black/5 dark:hover:bg-white/5'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700'
                 }`}
-                title="Voice input"
+                title="Voice Input"
                 aria-label="Voice input"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
               </button>
+
+              {/* Language Switcher Dropdown Toggle */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  className="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-all flex items-center justify-center"
+                  title="Change Language"
+                  aria-label="Change Language"
+                >
+                  <span className="text-xs font-bold">A/अ</span>
+                </button>
+
+                {showLangMenu && (
+                  <div className="absolute right-0 bottom-11 z-30 w-44 bg-white dark:bg-slate-800 border theme-border rounded-2xl shadow-xl py-1.5 max-h-48 overflow-y-auto">
+                    <p className="px-3.5 py-1 text-[10px] font-semibold theme-text-muted uppercase tracking-wider">Select Language</p>
+                    {languages.map(lang => (
+                      <button
+                        key={lang.code}
+                        onClick={async () => {
+                          const langCode = lang.code;
+                          setLanguage(langCode);
+                          setShowLangMenu(false);
+
+                          for (const m of messages) {
+                            if (m.role === 'ai' && m.text && !m.processing) {
+                              let translated = m.text;
+                              if (langCode !== 'en') {
+                                translated = await translateText(m.text, langCode);
+                              }
+                              setMessages(prev =>
+                                prev.map(item =>
+                                  item.id === m.id
+                                    ? {
+                                        ...item,
+                                        selectedLang: langCode,
+                                        translatedText: langCode !== 'en' ? translated : undefined,
+                                      }
+                                    : item
+                                )
+                              );
+                            }
+                          }
+                        }}
+                        className={`w-full text-left px-3.5 py-1.5 text-xs flex items-center justify-between hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors ${
+                          language === lang.code ? 'font-bold text-[#004b87] dark:text-sky-400 bg-blue-50/50' : 'theme-text-main'
+                        }`}
+                      >
+                        <span>{lang.native}</span>
+                        <span className="text-[10px] theme-text-muted">{lang.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Send Button Arrow */}
               <button
                 onClick={handleSend}
                 disabled={!input.trim()}
-                className="px-3 py-1.5 gov-btn-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs flex-shrink-0"
-                title="Send message"
+                className="p-2.5 rounded-full text-[#004b87] dark:text-sky-400 hover:text-[#003366] dark:hover:text-sky-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center ml-0.5"
+                title="Send Message"
                 aria-label="Send message"
               >
-                Send
+                <svg className="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                </svg>
               </button>
             </div>
-            <p className="text-[10px] theme-text-muted text-center mt-1">
-              Official citizen guidance assistant. Data verified against national scheme guidelines.
-            </p>
           </div>
+
+          {/* Footnote Disclaimer */}
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center mt-2.5 font-normal">
+            Sahaya AI assistant can make mistakes. Consider checking important information against official scheme guidelines.
+          </p>
         </div>
       </div>
     </div>

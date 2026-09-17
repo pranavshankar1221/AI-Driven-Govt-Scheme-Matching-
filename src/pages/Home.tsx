@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { NavProps } from '../types';
 import { schemes } from '../data/schemes';
 import { useLanguage } from '../context/LanguageContext';
@@ -7,22 +7,18 @@ const HERO_SLIDES = [
   {
     url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1920&q=80',
     title: 'Rural Artisans & Micro Enterprises',
-    badge: '🧵 Artisan & Handloom Grants',
   },
   {
     url: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?auto=format&fit=crop&w=1920&q=80',
     title: 'Agricultural Subsidies & Farmer Welfare',
-    badge: '🌾 Farmer Financial Assistance',
   },
   {
     url: 'https://images.unsplash.com/photo-1607346256330-dee7af15f7c5?auto=format&fit=crop&w=1920&q=80',
     title: 'Women Entrepreneurship & Self-Help Groups',
-    badge: '👩‍💼 Women Enterprise Credit',
   },
   {
     url: 'https://images.unsplash.com/photo-1596727147705-61a532a659bd?auto=format&fit=crop&w=1920&q=80',
     title: 'Small Business & Street Vendor Loans',
-    badge: '🏪 Micro & Small Business Credit',
   },
 ];
 
@@ -50,8 +46,6 @@ export default function Home({ navigate }: NavProps) {
     else navigate('ai-matcher');
   };
 
-  const currentSlide = HERO_SLIDES[heroSlideIdx];
-
   const stats = [
     { value: '500+', label: t('stat1Label') },
     { value: '18 Lakh+', label: t('stat2Label') },
@@ -60,34 +54,34 @@ export default function Home({ navigate }: NavProps) {
   ];
 
   const steps = [
-    { n: '01', title: t('step1Title'), desc: t('step1Desc'), icon: '👤' },
-    { n: '02', title: t('step2Title'), desc: t('step2Desc'), icon: '🎯' },
-    { n: '03', title: t('step3Title'), desc: t('step3Desc'), icon: '✓' },
-    { n: '04', title: t('step4Title'), desc: t('step4Desc'), icon: '🏦' },
+    { n: '01', title: t('step1Title'), desc: t('step1Desc') },
+    { n: '02', title: t('step2Title'), desc: t('step2Desc') },
+    { n: '03', title: t('step3Title'), desc: t('step3Desc') },
+    { n: '04', title: t('step4Title'), desc: t('step4Desc') },
   ];
 
   const schemeCategories = [
-    { label: t('catMsme'), count: 184, icon: '🏭' },
-    { label: t('catHousing'), count: 67, icon: '🏠' },
-    { label: t('catAgri'), count: 112, icon: '🌾' },
-    { label: t('catSkills'), count: 95, icon: '🛠️' },
-    { label: t('catWomen'), count: 78, icon: '👩‍💼' },
-    { label: t('catSocial'), count: 143, icon: '🤝' },
+    { label: t('catMsme'), count: 184 },
+    { label: t('catHousing'), count: 67 },
+    { label: t('catAgri'), count: 112 },
+    { label: t('catSkills'), count: 95 },
+    { label: t('catWomen'), count: 78 },
+    { label: t('catSocial'), count: 143 },
   ];
 
   const features = [
-    { icon: '🎯', title: t('feat1Title'), desc: t('feat1Desc') },
-    { icon: '✓', title: t('feat2Title'), desc: t('feat2Desc') },
-    { icon: '📄', title: t('feat3Title'), desc: t('feat3Desc') },
-    { icon: '📊', title: t('feat4Title'), desc: t('feat4Desc') },
-    { icon: '📍', title: t('feat5Title'), desc: t('feat5Desc') },
-    { icon: '🌐', title: t('feat6Title'), desc: t('feat6Desc') },
+    { title: t('feat1Title'), desc: t('feat1Desc') },
+    { title: t('feat2Title'), desc: t('feat2Desc') },
+    { title: t('feat3Title'), desc: t('feat3Desc') },
+    { title: t('feat4Title'), desc: t('feat4Desc') },
+    { title: t('feat5Title'), desc: t('feat5Desc') },
+    { title: t('feat6Title'), desc: t('feat6Desc') },
   ];
 
   return (
     <div className="overflow-x-hidden theme-page transition-colors duration-150">
 
-      {/* ── HERO BANNER WITH VIBRANT, VISIBLE CITIZEN IMAGE SLIDER ── */}
+      {/* ── HERO BANNER WITH SLIDER ── */}
       <section 
         className="relative text-white border-b border-[#001f3f] py-16 sm:py-24 overflow-hidden bg-slate-900"
         onMouseEnter={() => setIsHeroHovered(true)}
@@ -106,7 +100,7 @@ export default function Home({ navigate }: NavProps) {
           />
         ))}
 
-        {/* Translucent Dark Gradient Overlay for Maximum Text Readability while keeping imagery clear */}
+        {/* Translucent Dark Gradient Overlay for Maximum Text Readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-900/75 to-slate-950/80" />
         <div className="absolute inset-0 bg-[#001f3f]/40" />
 
@@ -128,14 +122,11 @@ export default function Home({ navigate }: NavProps) {
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 text-center animate-fade-in z-10">
 
-          {/* Official Portal Badge + Current Slide Tag */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+          {/* Clean Single Header Badge */}
+          <div className="flex items-center justify-center mb-6">
             <div className="inline-flex items-center gap-2 bg-[#002b54]/80 backdrop-blur-md border border-sky-400/30 text-sky-200 text-xs font-semibold px-4 py-1.5 rounded-full tracking-wide shadow-md">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>{t('heroBadge')}</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 bg-amber-500/20 backdrop-blur-md border border-amber-400/40 text-amber-200 text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
-              <span>{currentSlide.badge}</span>
             </div>
           </div>
 
@@ -177,7 +168,6 @@ export default function Home({ navigate }: NavProps) {
               onClick={() => navigate('ai-matcher')}
               className="px-6 py-3 bg-[#0284c7] hover:bg-[#0369a1] text-white font-semibold rounded-md text-xs sm:text-sm transition-all shadow-lg hover:-translate-y-0.5 flex items-center gap-2 border border-sky-400/30"
             >
-              <span>✦</span>
               <span>{t('matchUsingAi')}</span>
             </button>
             <button
@@ -188,7 +178,7 @@ export default function Home({ navigate }: NavProps) {
             </button>
           </div>
 
-          {/* Background Image Slide Indicators & Thumbnail Titles */}
+          {/* Slide Indicators */}
           <div className="flex items-center justify-center gap-2 pt-2">
             {HERO_SLIDES.map((slide, idx) => (
               <button
@@ -221,7 +211,7 @@ export default function Home({ navigate }: NavProps) {
         </div>
       </section>
 
-      {/* ── POPULAR GOVERNMENT SCHEMES (Clean Responsive Grid) ── */}
+      {/* ── POPULAR GOVERNMENT SCHEMES (Minimal & Structured Design) ── */}
       <section className="py-12 border-b theme-border bg-slate-50/50 dark:bg-black/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-8">
@@ -240,7 +230,7 @@ export default function Home({ navigate }: NavProps) {
             </button>
           </div>
 
-          {/* 6 Schemes Grid */}
+          {/* 6 Schemes Grid with Clean Government Palette */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {locSchemes.slice(0, 6).map((scheme) => (
               <div
@@ -248,12 +238,12 @@ export default function Home({ navigate }: NavProps) {
                 className="theme-card theme-card-hover rounded-xl p-5 border theme-border shadow-sm flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-500/10 text-[#004b87] dark:text-sky-300 border border-blue-500/20">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border theme-border">
                       {scheme.type}
                     </span>
                     {scheme.badge && (
-                      <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded uppercase">
+                      <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#003366] text-white uppercase tracking-wider">
                         {scheme.badge}
                       </span>
                     )}
@@ -264,9 +254,9 @@ export default function Home({ navigate }: NavProps) {
                   </h3>
                   <p className="text-[11px] theme-text-muted mb-3 font-medium">{scheme.organization}</p>
 
-                  <div className="theme-card-subtle rounded-lg p-2.5 mb-3 border theme-border text-xs">
+                  <div className="theme-card-subtle rounded-lg p-3 mb-3 border theme-border text-xs">
                     <span className="text-[10px] theme-text-muted uppercase font-bold block mb-0.5">{t('financialAssistance')}</span>
-                    <span className="text-amber-800 dark:text-amber-300 font-bold">{scheme.financialAssistance}</span>
+                    <span className="text-[#003366] dark:text-sky-300 font-bold">{scheme.financialAssistance}</span>
                   </div>
 
                   <p className="text-xs theme-text-muted line-clamp-2 leading-relaxed mb-4">
@@ -306,12 +296,11 @@ export default function Home({ navigate }: NavProps) {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {steps.map(({ n, title, desc, icon }) => (
+            {steps.map(({ n, title, desc }) => (
               <div key={n} className="theme-card rounded-lg p-5 border theme-border shadow-sm flex flex-col justify-between hover:border-[#004b87] transition-all">
                 <div>
                   <div className="flex items-center justify-between mb-3 border-b theme-border pb-2.5">
-                    <span className="text-2xl">{icon}</span>
-                    <span className="text-xs font-mono font-bold text-[#004b87] dark:text-sky-400">{n}</span>
+                    <span className="text-xs font-mono font-bold text-[#004b87] dark:text-sky-400">STEP {n}</span>
                   </div>
                   <h3 className="theme-text-main font-bold text-sm mb-1.5" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{title}</h3>
                   <p className="theme-text-muted text-xs leading-relaxed">{desc}</p>
@@ -333,13 +322,12 @@ export default function Home({ navigate }: NavProps) {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {schemeCategories.map(({ label, count, icon }) => (
+            {schemeCategories.map(({ label, count }) => (
               <button
                 key={label}
                 onClick={() => navigate('catalog')}
                 className="theme-card rounded-lg p-4 text-center border theme-border hover:border-[#004b87] transition-all shadow-sm flex flex-col items-center justify-between hover:-translate-y-1"
               >
-                <span className="text-2xl mb-1.5">{icon}</span>
                 <p className="theme-text-main text-xs font-semibold mb-2">{label}</p>
                 <p className="text-[10px] theme-text-muted font-medium bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full">{count} {t('schemesCountLabel')}</p>
               </button>
@@ -359,9 +347,8 @@ export default function Home({ navigate }: NavProps) {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {features.map(({ icon, title, desc }) => (
+            {features.map(({ title, desc }) => (
               <div key={title} className="theme-card rounded-lg p-5 border theme-border shadow-sm flex items-start gap-3.5 hover:border-[#004b87] transition-colors">
-                <span className="text-2xl flex-shrink-0 mt-0.5">{icon}</span>
                 <div>
                   <h3 className="theme-text-main font-bold text-xs sm:text-sm mb-1" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{title}</h3>
                   <p className="theme-text-muted text-xs leading-relaxed">{desc}</p>

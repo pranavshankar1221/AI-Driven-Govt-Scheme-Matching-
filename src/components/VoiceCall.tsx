@@ -1,39 +1,206 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { CallState, VoiceTranscriptEntry as TranscriptEntry } from '../types/ai';
 import { useLanguage } from '../context/LanguageContext';
+import { apiFetch } from '../services/api';
+import { detectScriptLanguage } from '../services/translator';
 
 interface Props {
   onClose: () => void;
   onContinueInChat: () => void;
 }
 
-const demoTranscript: TranscriptEntry[] = [
-  { role: 'user', text: 'I want to start a tailoring business in Coimbatore.', time: '0:08' },
-  { role: 'ai', text: 'Welcome Ravi! For an urban tailoring enterprise in Coimbatore, the PMEGP scheme offers a 15% capital subsidy, and MUDRA Kishore provides working capital up to ₹5 Lakhs.', time: '0:14' },
-  { role: 'user', text: 'What documents do I need to prepare for PMEGP?', time: '0:22' },
-  { role: 'ai', text: 'You will need your Aadhaar, Class 8 educational certificate, Caste certificate for OBC subsidy tier, and a simple Project Report. Shall we proceed with your application checklist?', time: '0:30' },
-];
-
 export default function VoiceCall({ onClose, onContinueInChat }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [callState, setCallState] = useState<CallState>('connecting');
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [muted, setMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(true);
-  const [transcriptIdx, setTranscriptIdx] = useState(0);
+  
   const transcriptRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const conversationIdRef = useRef<string | null>(null);
+  const isProcessingRef = useRef<boolean>(false);
+  const hasStartedRef = useRef<boolean>(false);
 
+  const durationRef = useRef<number>(0);
+  durationRef.current = duration;
+
+  const speakerOnRef = useRef<boolean>(speakerOn);
+  speakerOnRef.current = speakerOn;
+
+  const mutedRef = useRef<boolean>(muted);
+  mutedRef.current = muted;
+
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  // Speak text aloud using browser SpeechSynthesis
+  const speakText = useCallback((text: string, onEnd?: () => void) => {
+    if (!speakerOnRef.current || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      if (onEnd) onEnd();
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/[#*`_~]/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\s+/g, ' ').trim();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      
+      const scriptLang = detectScriptLanguage(cleanText);
+      const langMap: Record<string, string> = {
+        en: 'en-IN', hi: 'hi-IN', ta: 'ta-IN', te: 'te-IN',
+        bn: 'bn-IN', mr: 'mr-IN', gu: 'gu-IN', kn: 'kn-IN',
+        ml: 'ml-IN', pa: 'pa-IN', or: 'or-IN', ur: 'ur-IN'
+      };
+      utterance.lang = langMap[scriptLang] || langMap[language] || 'en-IN';
+      utterance.rate = 0.95;
+
+      utterance.onend = () => {
+        setCallState('listening');
+        if (onEnd) onEnd();
+      };
+      utterance.onerror = () => {
+        setCallState('listening');
+        if (onEnd) onEnd();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      setCallState('listening');
+      if (onEnd) onEnd();
+    }
+  }, [language]);
+
+  // Send user utterance to AI orchestrator backend
+  const handleUserUtterance = useCallback(async (userText: string) => {
+    if (!userText.trim() || isProcessingRef.current) return;
+    isProcessingRef.current = true;
+    setCallState('processing');
+
+    const currentTimeStr = formatTime(durationRef.current);
+    setTranscript(prev => [...prev, { role: 'user', text: userText, time: currentTimeStr }]);
+
+    try {
+      const res = await apiFetch<any>('/v1/ai/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          text: userText,
+          conversation_id: conversationIdRef.current || undefined,
+        }),
+      });
+
+      if (res?.conversation_id) {
+        conversationIdRef.current = res.conversation_id;
+      }
+
+      const aiReply = res?.response_text || "I have received your information. What else would you like to know about government schemes?";
+      setTranscript(prev => [...prev, { role: 'ai', text: aiReply, time: currentTimeStr }]);
+      
+      setCallState('speaking');
+      speakText(aiReply, () => {
+        isProcessingRef.current = false;
+      });
+
+    } catch (err) {
+      console.error('Error in voice call turn:', err);
+      const fallbackReply = "I am processing your query. Could you please repeat or specify your state and occupation?";
+      setTranscript(prev => [...prev, { role: 'ai', text: fallbackReply, time: currentTimeStr }]);
+      setCallState('speaking');
+      speakText(fallbackReply, () => {
+        isProcessingRef.current = false;
+      });
+    }
+  }, [speakText]);
+
+  // Initialize Call Session ONCE on mount
   useEffect(() => {
-    // Connecting → Connected
-    const connectTimer = setTimeout(() => {
-      setCallState('connected');
-      setTimeout(() => setCallState('listening'), 1000);
-    }, 2000);
-    return () => clearTimeout(connectTimer);
-  }, []);
+    let mounted = true;
 
+    const startCallSession = async () => {
+      try {
+        const convRes = await apiFetch<any>('/v1/conversations/start', {
+          method: 'POST',
+          body: JSON.stringify({ language_hint: 'en-IN' }),
+        });
+        if (convRes?.conversation_id && mounted) {
+          conversationIdRef.current = convRes.conversation_id;
+        }
+      } catch {}
+
+      if (!mounted) return;
+      setCallState('connected');
+      
+      const greeting = "Hello! Welcome to Sahaya AI Voice Helpline. Please tell me about yourself — your age, gender, state, income, and what kind of assistance you need.";
+      setTranscript([{ role: 'ai', text: greeting, time: '0:01' }]);
+      
+      setTimeout(() => {
+        if (!mounted) return;
+        setCallState('speaking');
+        speakText(greeting, () => {
+          if (mounted) setCallState('listening');
+        });
+      }, 400);
+    };
+
+    startCallSession();
+
+    // Set up Web Speech Recognition
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-IN';
+
+      recognition.onresult = (event: any) => {
+        if (mutedRef.current) return;
+        const lastIdx = event.results.length - 1;
+        const resultText = event.results[lastIdx][0].transcript;
+        if (resultText && resultText.trim()) {
+          handleUserUtterance(resultText.trim());
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error !== 'no-speech') {
+          console.warn('Speech recognition error:', event.error);
+        }
+      };
+
+      recognition.onend = () => {
+        if (mounted && recognitionRef.current) {
+          try {
+            recognition.start();
+          } catch {}
+        }
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      mounted = false;
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch {}
+      }
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch {}
+      }
+    };
+  }, []); // Run ONCE on mount!
+
+  // Manage SpeechRecognition listening lifecycle
+  useEffect(() => {
+    if (!recognitionRef.current) return;
+    if (callState === 'listening' && !muted) {
+      try { recognitionRef.current.start(); } catch {}
+    } else {
+      try { recognitionRef.current.stop(); } catch {}
+    }
+  }, [callState, muted]);
+
+  // Duration Timer
   useEffect(() => {
     if (callState === 'connected' || callState === 'listening' || callState === 'processing' || callState === 'speaking') {
       intervalRef.current = setInterval(() => setDuration(d => d + 1), 1000);
@@ -43,37 +210,25 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [callState]);
 
-  // Demo: cycle through transcript states
-  useEffect(() => {
-    if (callState === 'listening' || callState === 'speaking') {
-      const timer = setTimeout(() => {
-        if (transcriptIdx < demoTranscript.length) {
-          const entry = demoTranscript[transcriptIdx];
-          setTranscript(prev => [...prev, entry]);
-          setTranscriptIdx(i => i + 1);
-          setCallState(entry.role === 'user' ? 'processing' : 'listening');
-          if (entry.role === 'user') {
-            setTimeout(() => setCallState('speaking'), 1500);
-          }
-        }
-      }, 3500);
-      return () => clearTimeout(timer);
-    }
-  }, [callState, transcriptIdx]);
-
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: 'smooth' });
   }, [transcript]);
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-
-  const endCall = () => setCallState('ended');
+  const endCall = () => {
+    setCallState('ended');
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch {}
+    }
+  };
 
   const stateLabel: Record<CallState, string> = {
     connecting: 'Connecting to citizen voice gateway…',
     connected: 'Connected to voice session',
-    listening: 'Officer / AI is listening to your speech…',
-    processing: 'Retrieving scheme guidelines…',
+    listening: muted ? 'Microphone Muted' : 'Officer / AI is listening to your speech…',
+    processing: 'Evaluating eligibility & schemes…',
     speaking: 'Sahaya AI is speaking…',
     interrupted: 'Voice session paused',
     ended: 'Call session ended',
@@ -82,7 +237,7 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
   const stateColor: Record<CallState, string> = {
     connecting: 'text-amber-300',
     connected: 'text-sky-300',
-    listening: 'text-emerald-400',
+    listening: muted ? 'text-red-400' : 'text-emerald-400',
     processing: 'text-sky-300',
     speaking: 'text-emerald-400',
     interrupted: 'text-amber-300',
@@ -109,7 +264,7 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
         {/* Center Indicator */}
         <div className="px-6 py-5 flex flex-col items-center gap-3.5 theme-modal">
           <div className={`w-20 h-20 rounded-full flex items-center justify-center border-2 transition-all duration-300 shadow-md ${
-            callState === 'speaking' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-400' :
+            callState === 'speaking' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 dark:text-emerald-400 animate-pulse' :
             callState === 'listening' ? 'bg-blue-500/20 border-blue-500 text-blue-600 dark:text-sky-400' :
             callState === 'connecting' ? 'bg-slate-200 dark:bg-slate-800 border-slate-400 text-slate-500' :
             'bg-slate-100 dark:bg-slate-800 border-slate-300 text-slate-600'
@@ -122,7 +277,7 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
           {/* Transcript Box */}
           <div
             ref={transcriptRef}
-            className="w-full h-36 overflow-y-auto theme-card-subtle rounded border theme-border p-3 space-y-2 text-xs"
+            className="w-full h-40 overflow-y-auto theme-card-subtle rounded border theme-border p-3 space-y-2 text-xs"
           >
             {transcript.length === 0 ? (
               <p className="theme-text-muted text-center italic text-[11px] pt-10">
@@ -154,7 +309,7 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
                 className={`w-10 h-10 rounded-full flex items-center justify-center border transition-colors ${
                   muted ? 'bg-red-500/20 border-red-500 text-red-500' : 'theme-card border theme-border theme-text-main hover:bg-black/5 dark:hover:bg-white/10'
                 }`}
-                title={muted ? 'Unmute' : 'Mute'}
+                title={muted ? 'Unmute Microphone' : 'Mute Microphone'}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   {muted ? (
@@ -167,7 +322,7 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
 
               <button
                 onClick={endCall}
-                className="px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-md transition-colors flex items-center gap-1.5"
+                className="px-5 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
@@ -180,7 +335,7 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
                 className={`w-10 h-10 rounded-full flex items-center justify-center border transition-colors ${
                   !speakerOn ? 'bg-amber-500/20 border-amber-500 text-amber-500' : 'theme-card border theme-border theme-text-main hover:bg-black/5 dark:hover:bg-white/10'
                 }`}
-                title={speakerOn ? 'Mute Speaker' : 'Enable Speaker'}
+                title={speakerOn ? 'Mute Audio Speaker' : 'Enable Audio Speaker'}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -191,13 +346,13 @@ export default function VoiceCall({ onClose, onContinueInChat }: Props) {
             <div className="space-y-2">
               <button
                 onClick={onContinueInChat}
-                className="w-full py-2 gov-btn-primary text-xs text-center"
+                className="w-full py-2 gov-btn-primary text-xs text-center cursor-pointer"
               >
                 Continue Consultation in Text Chat →
               </button>
               <button
                 onClick={onClose}
-                className="w-full py-2 gov-btn-secondary text-xs text-center"
+                className="w-full py-2 gov-btn-secondary text-xs text-center cursor-pointer"
               >
                 {t('close')}
               </button>

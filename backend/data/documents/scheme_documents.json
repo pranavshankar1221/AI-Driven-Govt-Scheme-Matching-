@@ -1,0 +1,166 @@
+[
+  {
+    "scheme_id": "PM_KISAN",
+    "scheme_name": "PM-Kisan Samman Nidhi",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "Identity proof and Aadhaar-linked bank account required", "requirement_type": "required"},
+      {"name": "Land Records / Khasra-Khatauni", "description": "Proof of agricultural land ownership", "requirement_type": "required"},
+      {"name": "Bank Passbook (Aadhaar-linked)", "description": "Bank account for direct benefit transfer", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Income Certificate", "description": "Helps verify income category", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [],
+    "note": "All documents must be self-attested. Apply via pmkisan.gov.in or nearest CSC."
+  },
+  {
+    "scheme_id": "MUDRA_SHISHU",
+    "scheme_name": "MUDRA Loan - Shishu Category",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "KYC identity proof", "requirement_type": "required"},
+      {"name": "PAN Card", "description": "Required for loan above Rs. 50,000", "requirement_type": "required"},
+      {"name": "Business Plan / Activity Proof", "description": "Details of business activity to be financed", "requirement_type": "required"},
+      {"name": "Bank Statement (last 6 months)", "description": "For credit assessment", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Residence Proof (Voter ID / Utility Bill)", "description": "Address verification", "requirement_type": "optional"},
+      {"name": "GST Registration (if applicable)", "description": "For registered businesses", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [
+      {"name": "SC/ST Certificate", "description": "Required if claiming SC/ST preference", "requirement_type": "conditional", "condition": "Applicant belongs to SC/ST category"}
+    ],
+    "note": "Apply at any bank, MFI, or NBFC offering MUDRA loans. No collateral required."
+  },
+  {
+    "scheme_id": "MUDRA_KISHOR",
+    "scheme_name": "MUDRA Loan - Kishor Category",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "KYC identity proof", "requirement_type": "required"},
+      {"name": "PAN Card", "description": "Mandatory for loans above Rs. 50,000", "requirement_type": "required"},
+      {"name": "Business Registration Certificate", "description": "Proof of existing business", "requirement_type": "required"},
+      {"name": "Income Tax Returns (last 2 years)", "description": "Financial viability proof", "requirement_type": "required"},
+      {"name": "Bank Statement (last 12 months)", "description": "For credit assessment", "requirement_type": "required"},
+      {"name": "Detailed Project Report", "description": "Business plan with cost estimates", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Trade License", "description": "If applicable for the business type", "requirement_type": "optional"},
+      {"name": "MSME Registration", "description": "Udyam registration certificate", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [],
+    "note": "Apply at any scheduled commercial bank, RRB, or NBFC."
+  },
+  {
+    "scheme_id": "PMEGP",
+    "scheme_name": "Prime Minister's Employment Generation Programme (PMEGP)",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "Identity and address proof", "requirement_type": "required"},
+      {"name": "Educational Certificate (8th Pass or above)", "description": "Minimum education requirement for projects above Rs. 10 lakh", "requirement_type": "required"},
+      {"name": "Project Report", "description": "Detailed project report with cost estimates", "requirement_type": "required"},
+      {"name": "Bank Account Details", "description": "For margin money disbursement", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Skill/Trade Certificate", "description": "EDP training or technical skills certificate", "requirement_type": "optional"},
+      {"name": "Caste Certificate", "description": "For SC/ST/OBC subsidy benefits", "requirement_type": "optional"},
+      {"name": "Ex-Serviceman Certificate", "description": "If applicable", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [
+      {"name": "Women Entrepreneur Declaration", "description": "Self-declaration for women applicants", "requirement_type": "conditional", "condition": "Applicant is female"}
+    ],
+    "note": "Apply at KVIC, KVIB, or District Industries Centre (DIC). Online portal: kviconline.gov.in"
+  },
+  {
+    "scheme_id": "PMFBY",
+    "scheme_name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "Identity proof", "requirement_type": "required"},
+      {"name": "Land Records (Khasra/Khatauni)", "description": "Proof of cultivated land", "requirement_type": "required"},
+      {"name": "Bank Account Details", "description": "For claim disbursement", "requirement_type": "required"},
+      {"name": "Sowing Certificate", "description": "Issued by Patwari/Agriculture Department", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Crop Loan Documents (if applicable)", "description": "For loanee farmers", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [],
+    "note": "Enrol through bank/insurance company/CSC before cut-off date. Apply at pmfby.gov.in."
+  },
+  {
+    "scheme_id": "STAND_UP_INDIA",
+    "scheme_name": "Stand-Up India Scheme",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "Identity proof", "requirement_type": "required"},
+      {"name": "PAN Card", "description": "Mandatory for all loan applicants", "requirement_type": "required"},
+      {"name": "Business Plan", "description": "Detailed project report for greenfield enterprise", "requirement_type": "required"},
+      {"name": "Bank Statement (last 6 months)", "description": "Financial track record", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Skill Certificate", "description": "Training or skill development certificate", "requirement_type": "optional"},
+      {"name": "Partnership Deed / Company Registration", "description": "If applicable", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [
+      {"name": "SC/ST Certificate", "description": "Required for SC/ST applicants", "requirement_type": "conditional", "condition": "Applicant belongs to SC or ST category"},
+      {"name": "Women Entrepreneur Declaration", "description": "Self-declaration form for women applicants", "requirement_type": "conditional", "condition": "Applicant is female"}
+    ],
+    "note": "Apply online at standupmitra.in or through any scheduled commercial bank."
+  },
+  {
+    "scheme_id": "NRLM_SHG_LOAN",
+    "scheme_name": "DAY-NRLM Self Help Group Bank Linkage",
+    "required_documents": [
+      {"name": "Aadhaar Card (all SHG members)", "description": "Identity proof for all members", "requirement_type": "required"},
+      {"name": "SHG Registration Certificate", "description": "Proof of registered Self Help Group", "requirement_type": "required"},
+      {"name": "SHG Meeting Minutes Book", "description": "Records of regular meetings and savings", "requirement_type": "required"},
+      {"name": "SHG Bank Account Passbook", "description": "Group savings account details", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "BPL Card", "description": "Below Poverty Line family card (if available)", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [],
+    "note": "Enrol through nearest Krishi Vigyan Kendra or Aajeevika Grameen Express. Visit aajeevika.gov.in."
+  },
+  {
+    "scheme_id": "PMAY_GRAMIN",
+    "scheme_name": "Pradhan Mantri Awas Yojana - Gramin (PMAY-G)",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "Identity and address proof", "requirement_type": "required"},
+      {"name": "SECC-2011 Data Proof", "description": "Socio-Economic Caste Census beneficiary proof", "requirement_type": "required"},
+      {"name": "Bank Account Details", "description": "For DBT disbursement", "requirement_type": "required"},
+      {"name": "Land Ownership Proof / NOC", "description": "Proof of land where house will be built", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Caste Certificate (SC/ST/OBC)", "description": "For priority category verification", "requirement_type": "optional"},
+      {"name": "Disability Certificate", "description": "If applicable (priority for disabled persons)", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [],
+    "note": "Apply through Gram Panchayat or Block Development Office. Track at pmayg.nic.in."
+  },
+  {
+    "scheme_id": "KALIA_ODISHA",
+    "scheme_name": "KALIA - Krushak Assistance for Livelihood and Income Augmentation",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "Identity proof for Odisha resident", "requirement_type": "required"},
+      {"name": "Bank Account Details", "description": "Aadhaar-linked bank account for DBT", "requirement_type": "required"},
+      {"name": "Land Records (if cultivator)", "description": "Khasra/Khatauni for farmer applicants", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "BPL Card", "description": "Below Poverty Line family card", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [
+      {"name": "Landless Declaration Certificate", "description": "For landless agricultural labour applicants", "requirement_type": "conditional", "condition": "Applicant is a landless agricultural labourer"}
+    ],
+    "note": "Apply at kalia.odisha.gov.in or through Gram Panchayat (Odisha residents only)."
+  },
+  {
+    "scheme_id": "TN_KUDIGAARAM",
+    "scheme_name": "Tamil Nadu Chief Minister's Comprehensive Health Insurance Scheme (Kalaignar)",
+    "required_documents": [
+      {"name": "Aadhaar Card", "description": "Identity proof for Tamil Nadu resident", "requirement_type": "required"},
+      {"name": "Ration Card (BPL/AAY/PHH)", "description": "Proof of income eligibility for the scheme", "requirement_type": "required"},
+      {"name": "Family Card / Smart Ration Card", "description": "Tamil Nadu family identification card", "requirement_type": "required"}
+    ],
+    "optional_documents": [
+      {"name": "Income Certificate from Tahsildar", "description": "For income eligibility verification", "requirement_type": "optional"}
+    ],
+    "conditional_documents": [],
+    "note": "Enrol at nearest Government hospital or CMCHIS help desk. Visit cmchistn.com."
+  }
+]

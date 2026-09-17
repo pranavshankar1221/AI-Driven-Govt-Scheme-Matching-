@@ -1,0 +1,368 @@
+[
+  {
+    "scheme_id": "PM_KISAN",
+    "scheme_name": "PM-Kisan Samman Nidhi",
+    "ministry": "Ministry of Agriculture & Farmers Welfare",
+    "description": "Direct income support of Rs. 6000 per year to small and marginal farmers.",
+    "benefit_summary": "Rs. 6,000/year in 3 equal instalments of Rs. 2,000 directly credited to bank account.",
+    "application_url": "https://pmkisan.gov.in",
+    "conditions": [
+      {
+        "field": "occupation",
+        "operator": "IN",
+        "value": ["farmer", "agriculture"],
+        "description": "Applicant must be a farmer or engaged in agriculture.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "annual_income",
+        "operator": "<=",
+        "value": 200000,
+        "description": "Annual income must not exceed Rs. 2,00,000 (constitutional income tax exemption threshold for small farmers).",
+        "required": false
+      },
+      {
+        "field": "category",
+        "operator": "NOT_IN",
+        "value": ["General"],
+        "description": "Institutional landholders and higher-income general category excluded (optional check).",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "MUDRA_SHISHU",
+    "scheme_name": "MUDRA Loan - Shishu Category",
+    "ministry": "Ministry of Finance / SIDBI",
+    "description": "Micro-credit up to Rs. 50,000 for non-corporate small business units.",
+    "benefit_summary": "Collateral-free loan up to Rs. 50,000 for micro businesses.",
+    "application_url": "https://mudra.org.in",
+    "conditions": [
+      {
+        "field": "occupation",
+        "operator": "IN",
+        "value": ["entrepreneur", "shopkeeper", "weaver", "farmer"],
+        "description": "Applicant must run a small business or self-employment activity.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": "<=",
+        "value": 65,
+        "description": "Applicant must not exceed 65 years of age.",
+        "required": true
+      },
+      {
+        "field": "loan_required",
+        "operator": "<=",
+        "value": 50000,
+        "description": "Loan requirement must be Rs. 50,000 or below for Shishu category.",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "MUDRA_KISHOR",
+    "scheme_name": "MUDRA Loan - Kishor Category",
+    "ministry": "Ministry of Finance / SIDBI",
+    "description": "Micro-credit from Rs. 50,001 to Rs. 5,00,000 for growing businesses.",
+    "benefit_summary": "Collateral-free loan between Rs. 50,001 and Rs. 5,00,000.",
+    "application_url": "https://mudra.org.in",
+    "conditions": [
+      {
+        "field": "occupation",
+        "operator": "IN",
+        "value": ["entrepreneur", "shopkeeper", "weaver", "farmer"],
+        "description": "Applicant must run a small business or self-employment activity.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "loan_required",
+        "operator": ">",
+        "value": 50000,
+        "description": "Loan requirement must exceed Rs. 50,000 (Kishor category lower bound).",
+        "required": false
+      },
+      {
+        "field": "loan_required",
+        "operator": "<=",
+        "value": 500000,
+        "description": "Loan requirement must not exceed Rs. 5,00,000 (Kishor category upper bound).",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "PMEGP",
+    "scheme_name": "Prime Minister's Employment Generation Programme (PMEGP)",
+    "ministry": "Ministry of MSME",
+    "description": "Credit-linked subsidy to generate employment through micro enterprises.",
+    "benefit_summary": "15-35% margin money subsidy on project cost up to Rs. 25 lakh (service) / Rs. 50 lakh (manufacturing).",
+    "application_url": "https://www.kviconline.gov.in/pmegpeportal/pmegphome/index.jsp",
+    "conditions": [
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "education",
+        "operator": "IN",
+        "value": ["8th Pass", "10th Pass", "12th Pass", "Diploma", "Graduate"],
+        "description": "Applicant must have passed at least 8th standard for projects above Rs. 10 lakh.",
+        "required": false
+      },
+      {
+        "field": "occupation",
+        "operator": "IN",
+        "value": ["entrepreneur", "weaver", "shopkeeper"],
+        "description": "Applicant must be setting up a new micro enterprise.",
+        "required": true
+      },
+      {
+        "field": "annual_income",
+        "operator": "<=",
+        "value": 500000,
+        "description": "Beneficiary annual family income should not exceed Rs. 5,00,000.",
+        "required": false
+      },
+      {
+        "field": "project_cost",
+        "operator": "<=",
+        "value": 5000000,
+        "description": "Project cost must not exceed Rs. 50,00,000 for manufacturing units.",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "PMFBY",
+    "scheme_name": "Pradhan Mantri Fasal Bima Yojana (PMFBY)",
+    "ministry": "Ministry of Agriculture & Farmers Welfare",
+    "description": "Crop insurance scheme providing financial support to farmers in case of crop failure.",
+    "benefit_summary": "Comprehensive crop insurance with premium of 2% for Kharif, 1.5% for Rabi crops.",
+    "application_url": "https://pmfby.gov.in",
+    "conditions": [
+      {
+        "field": "occupation",
+        "operator": "IN",
+        "value": ["farmer", "agriculture"],
+        "description": "Applicant must be a farmer.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      }
+    ]
+  },
+  {
+    "scheme_id": "STAND_UP_INDIA",
+    "scheme_name": "Stand-Up India Scheme",
+    "ministry": "Ministry of Finance",
+    "description": "Bank loans between Rs. 10 lakh and Rs. 1 crore to SC/ST and women entrepreneurs.",
+    "benefit_summary": "Composite bank loan of Rs. 10 lakh to Rs. 1 crore for greenfield enterprises.",
+    "application_url": "https://www.standupmitra.in",
+    "conditions": [
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "occupation",
+        "operator": "IN",
+        "value": ["entrepreneur"],
+        "description": "Applicant must be setting up a greenfield enterprise.",
+        "required": true
+      },
+      {
+        "field": "category",
+        "operator": "IN",
+        "value": ["SC", "ST"],
+        "description": "Scheme is for SC/ST category entrepreneurs OR women (gender check below).",
+        "required": false
+      },
+      {
+        "field": "gender",
+        "operator": "=",
+        "value": "female",
+        "description": "Women entrepreneurs are eligible regardless of social category.",
+        "required": false
+      },
+      {
+        "field": "loan_required",
+        "operator": ">=",
+        "value": 1000000,
+        "description": "Minimum loan under this scheme is Rs. 10 lakh.",
+        "required": false
+      },
+      {
+        "field": "loan_required",
+        "operator": "<=",
+        "value": 10000000,
+        "description": "Maximum loan under this scheme is Rs. 1 crore.",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "NRLM_SHG_LOAN",
+    "scheme_name": "DAY-NRLM Self Help Group Bank Linkage",
+    "ministry": "Ministry of Rural Development",
+    "description": "Subsidised credit linkage for women-led Self Help Groups in rural areas.",
+    "benefit_summary": "Interest subvention on bank loans; 3-7% effective interest rate for SHG members.",
+    "application_url": "https://aajeevika.gov.in",
+    "conditions": [
+      {
+        "field": "gender",
+        "operator": "=",
+        "value": "female",
+        "description": "Scheme is exclusively for women beneficiaries.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "annual_income",
+        "operator": "<=",
+        "value": 300000,
+        "description": "Annual family income must not exceed Rs. 3,00,000 for rural BPL households.",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "PMAY_GRAMIN",
+    "scheme_name": "Pradhan Mantri Awas Yojana - Gramin (PMAY-G)",
+    "ministry": "Ministry of Rural Development",
+    "description": "Housing for All scheme providing financial assistance for construction/enhancement of pucca houses.",
+    "benefit_summary": "Rs. 1.20 lakh in plains and Rs. 1.30 lakh in hilly/NE/difficult areas.",
+    "application_url": "https://pmayg.nic.in",
+    "conditions": [
+      {
+        "field": "annual_income",
+        "operator": "<=",
+        "value": 300000,
+        "description": "Beneficiary must belong to a household with annual income up to Rs. 3 lakh.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "category",
+        "operator": "IN",
+        "value": ["SC", "ST", "OBC"],
+        "description": "Priority given to SC/ST/OBC households (optional check — general category may still qualify).",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "KALIA_ODISHA",
+    "scheme_name": "KALIA - Krushak Assistance for Livelihood and Income Augmentation (Odisha)",
+    "ministry": "Govt of Odisha - Agriculture Dept.",
+    "description": "State scheme providing financial assistance to small, marginal farmers and landless labourers in Odisha.",
+    "benefit_summary": "Rs. 10,000 per year in 2 instalments for cultivation + Rs. 5,000 for non-cultivation livelihood.",
+    "application_url": "https://kalia.odisha.gov.in",
+    "conditions": [
+      {
+        "field": "state",
+        "operator": "=",
+        "value": "Odisha",
+        "description": "Applicant must be a resident of Odisha.",
+        "required": true
+      },
+      {
+        "field": "occupation",
+        "operator": "IN",
+        "value": ["farmer", "agriculture"],
+        "description": "Applicant must be a farmer or agricultural labourer.",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 18,
+        "description": "Applicant must be at least 18 years old.",
+        "required": true
+      },
+      {
+        "field": "annual_income",
+        "operator": "<=",
+        "value": 200000,
+        "description": "Annual income must be below Rs. 2,00,000.",
+        "required": false
+      }
+    ]
+  },
+  {
+    "scheme_id": "TN_KUDIGAARAM",
+    "scheme_name": "Tamil Nadu Chief Minister's Comprehensive Health Insurance Scheme (Kalaignar)",
+    "ministry": "Health & Family Welfare Dept., Tamil Nadu",
+    "description": "Health insurance coverage up to Rs. 5 lakh per family per year for low-income families in Tamil Nadu.",
+    "benefit_summary": "Up to Rs. 5,00,000 annual health cover for inpatient treatment at govt/empanelled hospitals.",
+    "application_url": "https://www.cmchistn.com",
+    "conditions": [
+      {
+        "field": "state",
+        "operator": "=",
+        "value": "Tamil Nadu",
+        "description": "Applicant must be a resident of Tamil Nadu.",
+        "required": true
+      },
+      {
+        "field": "annual_income",
+        "operator": "<=",
+        "value": 72000,
+        "description": "Annual family income must not exceed Rs. 72,000 (BPL threshold for this scheme).",
+        "required": true
+      },
+      {
+        "field": "age",
+        "operator": ">=",
+        "value": 0,
+        "description": "No minimum age restriction; all family members covered.",
+        "required": false
+      }
+    ]
+  }
+]

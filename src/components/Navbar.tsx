@@ -61,29 +61,27 @@ export default function Navbar({ navigate, currentPage, isLoggedIn, onLogout, on
       <nav className="bg-[#003366] text-white border-b border-[#002244]">
         <div className="w-full px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 h-16 relative">
 
-          {/* Left Zone: Sahaya Brand (NO Home icon when logged in) */}
+          {/* Left Zone: Sahaya Brand */}
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-            {/* Leftmost Home Icon: ONLY on logged-out landing page */}
-            {!isLoggedIn && (
-              <button
-                onClick={() => navigate('home')}
-                className={`p-2 rounded-md transition-colors ${
-                  currentPage === 'home'
-                    ? 'bg-white/20 text-white shadow-inner'
-                    : 'text-slate-200 hover:text-white hover:bg-white/10'
-                }`}
-                title={t('home')}
-                aria-label={t('home')}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-              </button>
-            )}
+            {/* Leftmost Home Icon */}
+            <button
+              onClick={() => navigate('home')}
+              className={`p-2 rounded-md transition-colors ${
+                currentPage === 'home'
+                  ? 'bg-white/20 text-white shadow-inner'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              }`}
+              title={t('home')}
+              aria-label={t('home')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </button>
 
             {/* Brand Logo & Name */}
             <button
-              onClick={() => navigate(isLoggedIn ? 'catalog' : 'home')}
+              onClick={() => navigate('home')}
               className="flex items-center gap-2.5 text-left focus:outline-none"
               aria-label="Sahaya Portal"
             >
@@ -96,27 +94,7 @@ export default function Navbar({ navigate, currentPage, isLoggedIn, onLogout, on
             </button>
           </div>
 
-          {/* Center Zone: Main Navigation Links (Visually centered on desktop when logged in) */}
-          {isLoggedIn && (
-            <div className="hidden lg:flex items-center justify-center gap-1.5 absolute left-1/2 -translate-x-1/2">
-              {navLinks.map((link) => {
-                const isActive = currentPage === link.page;
-                return (
-                  <button
-                    key={link.page}
-                    onClick={() => navigate(link.page)}
-                    className={`px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-white/15 text-white font-semibold shadow-inner'
-                        : 'text-slate-200 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    {link.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+
 
           {/* Right Zone: Right-side Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 ml-auto">

@@ -34,6 +34,8 @@ export interface Partner {
   reviewCount: number;
   schemes: string[];
   hours: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface NavProps {
